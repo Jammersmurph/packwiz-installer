@@ -14,6 +14,9 @@ import java.util.concurrent.CountDownLatch
 import javax.swing.JDialog
 import javax.swing.JOptionPane
 import javax.swing.UIManager
+import javax.swing.ImageIcon
+import java.awt.Image
+
 import kotlin.concurrent.timer
 import kotlin.system.exitProcess
 
@@ -43,26 +46,36 @@ class GUIHandler : IUserInterface {
 	@Volatile
 	override var firstInstall = false
 
-	override var title = "brassworks-updater"
+	override var title = "Brassworks Updater"
 		set(value) {
 			field = value
 			EventQueue.invokeLater { frmPackwizlauncher.title = value }
 		}
 
-	init {
-		EventQueue.invokeAndWait {
-			try {
-				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
-			} catch (e: Exception) {
-				Log.warn("Failed to set look and feel", e)
-			}
-			frmPackwizlauncher = InstallWindow(this).apply {
-				title = this@GUIHandler.title
-			}
-		}
-	}
+    init {
+        EventQueue.invokeAndWait {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+            } catch (e: Exception) {
+                Log.warn("Failed to set look and feel", e)
+            }
+            frmPackwizlauncher = InstallWindow(this).apply {
+                title = this@GUIHandler.title
 
-	private val visibleCountdownLatch = CountDownLatch(1)
+                val icons = listOfNotNull(
+                    GUIHandler::class.java.getResource("/icon16.png")?.let { ImageIcon(it).image },
+                    GUIHandler::class.java.getResource("/icon32.png")?.let { ImageIcon(it).image },
+                    GUIHandler::class.java.getResource("/icon48.png")?.let { ImageIcon(it).image },
+                    GUIHandler::class.java.getResource("/icon128.png")?.let { ImageIcon(it).image }
+                )
+                if (icons.isNotEmpty()) {
+                    iconImages = icons
+                }
+            }
+        }
+    }
+
+    private val visibleCountdownLatch = CountDownLatch(1)
 	private val optionalSelectedLatch = CountDownLatch(1)
 
 	override fun show() = EventQueue.invokeLater {
