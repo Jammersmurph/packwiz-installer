@@ -50,7 +50,7 @@ application {
 }
 
 val gitVersion: groovy.lang.Closure<*> by extra
-version = gitVersion()
+version = 1.0
 
 tasks.jar {
 	manifest {
@@ -61,7 +61,7 @@ tasks.jar {
 
 licenseReport {
 	renderers = arrayOf<com.github.jk1.license.render.ReportRenderer>(
-		com.github.jk1.license.render.InventoryMarkdownReportRenderer("licenses.md", "packwiz-installer")
+		com.github.jk1.license.render.InventoryMarkdownReportRenderer("licenses.md", "brassworks-updater")
 	)
 	filters = arrayOf<com.github.jk1.license.filter.DependencyFilter>(com.github.jk1.license.filter.LicenseBundleNormalizer())
 }
@@ -127,9 +127,9 @@ artifacts {
 // Used for vscode launch.json
 val copyJar by tasks.registering(Copy::class) {
 	from(distJar)
-	rename("packwiz-installer-(.*)\\.jar", "packwiz-installer.jar")
+	rename("brassworks-updater-(.*)\\.jar", "brassworks-updater.jar")
 	into(layout.buildDirectory.dir("dist"))
-	outputs.file(layout.buildDirectory.dir("dist").map { it.file("packwiz-installer.jar") })
+	outputs.file(layout.buildDirectory.dir("dist").map { it.file("brassworks-updater.jar") })
 }
 
 tasks.build {
@@ -138,12 +138,12 @@ tasks.build {
 
 githubRelease {
 	owner("comp500")
-	repo("packwiz-installer")
+	repo("brassworks-updater")
 	tagName("${project.version}")
 	releaseName("Release ${project.version}")
 	draft(true)
 	token(findProperty("github.token") as String?)
-	releaseAssets(layout.buildDirectory.dir("dist").map { it.file("packwiz-installer.jar") }.get())
+	releaseAssets(layout.buildDirectory.dir("dist").map { it.file("brassworks-updater.jar") }.get())
 }
 
 tasks.githubRelease {
@@ -182,7 +182,7 @@ if (project.hasProperty("bunnycdn.token")) {
 		publications {
 			create<MavenPublication>("maven") {
 				groupId = "link.infra.packwiz"
-				artifactId = "packwiz-installer"
+				artifactId = "brassworks-updater"
 
 				from(components["java"])
 			}

@@ -43,7 +43,7 @@ class GUIHandler : IUserInterface {
 	@Volatile
 	override var firstInstall = false
 
-	override var title = "packwiz-installer"
+	override var title = "brassworks-updater"
 		set(value) {
 			field = value
 			EventQueue.invokeLater { frmPackwizlauncher.title = value }
