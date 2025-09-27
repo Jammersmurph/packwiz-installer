@@ -53,6 +53,7 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 
 	// TODO: make this return a value based on results?
 	private fun start() {
+
 		val clientHolder = ClientHolder()
 		ui.cancelCallback = {
 			clientHolder.close()

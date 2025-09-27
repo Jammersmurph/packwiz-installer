@@ -50,7 +50,7 @@ application {
 }
 
 val gitVersion: groovy.lang.Closure<*> by extra
-version = 1.0
+version = 1.2
 
 tasks.jar {
 	manifest {
