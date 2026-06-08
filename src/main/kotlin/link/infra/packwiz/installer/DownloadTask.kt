@@ -10,7 +10,6 @@ import link.infra.packwiz.installer.target.Side
 import link.infra.packwiz.installer.target.path.PackwizFilePath
 import link.infra.packwiz.installer.ui.data.ExceptionDetails
 import link.infra.packwiz.installer.ui.data.IOptionDetails
-import link.infra.packwiz.installer.util.Log
 import okio.Buffer
 import okio.HashingSink
 import okio.blackholeSink
@@ -36,6 +35,7 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 	private var newOptional = true
 	var completionStatus = CompletionStatus.INCOMPLETE
 		private set
+	private var overwriteAllowed = false
 
 	enum class CompletionStatus {
 		INCOMPLETE,
@@ -71,6 +71,10 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 	fun invalidate() {
 		invalidated = true
 		alreadyUpToDate = false
+	}
+
+	fun setOverwriteAllowed(overwriteAllowed: Boolean) {
+		this.overwriteAllowed = overwriteAllowed
 	}
 
 	fun updateFromCache(cachedFile: ManifestFile.File?) {
@@ -141,7 +145,7 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 			try {
 				// TODO: only do this for files that didn't exist before or have been modified since last full update?
 				val destPath = metadata.destURI.rebase(packFolder)
-				if (shouldPreserveExisting(destPath) && destPath.nioPath.toFile().exists()) {
+				if (!overwriteAllowed && destPath.nioPath.toFile().exists()) {
 					markExistingFileAsCurrent(destPath)
 					return
 				}
@@ -196,26 +200,29 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 	fun download(packFolder: PackwizFilePath, clientHolder: ClientHolder) {
 		if (err != null) return
 
-		// Exclude wrong-side and optional false files
+		// Exclude wrong-side and optional false files without removing local user files unless allowed.
 		cachedFile?.let {
 			if ((it.isOptional && !it.optionValue) || !correctSide()) {
 				if (it.cachedLocation != null) {
-					// Ensure wrong-side or optional false files are removed
-					try {
-						completionStatus = if (Files.deleteIfExists(it.cachedLocation!!.nioPath)) {
-							if (correctSide()) { CompletionStatus.DELETED_DISABLED } else { CompletionStatus.DELETED_WRONG_SIDE }
-						} else {
-							if (correctSide()) { CompletionStatus.SKIPPED_DISABLED } else { CompletionStatus.SKIPPED_WRONG_SIDE }
+					if (overwriteAllowed) {
+						try {
+							completionStatus = if (Files.deleteIfExists(it.cachedLocation!!.nioPath)) {
+								if (correctSide()) { CompletionStatus.DELETED_DISABLED } else { CompletionStatus.DELETED_WRONG_SIDE }
+							} else {
+								if (correctSide()) { CompletionStatus.SKIPPED_DISABLED } else { CompletionStatus.SKIPPED_WRONG_SIDE }
+							}
+						} catch (e: IOException) {
+							completionStatus = if (correctSide()) { CompletionStatus.SKIPPED_DISABLED } else { CompletionStatus.SKIPPED_WRONG_SIDE }
 						}
-					} catch (e: IOException) {
-						Log.warn("Failed to delete file", e)
+						it.cachedLocation = null
+					} else {
+						completionStatus = if (correctSide()) { CompletionStatus.SKIPPED_DISABLED } else { CompletionStatus.SKIPPED_WRONG_SIDE }
 					}
 				} else {
 					completionStatus =
 						if (correctSide()) { CompletionStatus.SKIPPED_DISABLED }
 						else { CompletionStatus.SKIPPED_WRONG_SIDE }
 				}
-				it.cachedLocation = null
 				return
 			}
 		}
@@ -224,11 +231,9 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 		val destPath = metadata.destURI.rebase(packFolder)
 
 		// Don't update files marked with preserve if they already exist on disk
-		if (shouldPreserveExisting(destPath)) {
-			if (destPath.nioPath.toFile().exists()) {
-				markExistingFileAsCurrent(destPath)
-				return
-			}
+		if (!overwriteAllowed && destPath.nioPath.toFile().exists()) {
+			markExistingFileAsCurrent(destPath)
+			return
 		}
 
 		// TODO: add .disabled support?
@@ -280,17 +285,6 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 				data.clear()
 				return
 			}
-			cachedFile?.cachedLocation?.let {
-				if (destPath != it) {
-					// Delete old file if location changes
-					try {
-						Files.delete(cachedFile!!.cachedLocation!!.nioPath)
-					} catch (e: IOException) {
-						// Continue, as it was probably already deleted?
-						// TODO: log it
-					}
-				}
-			}
 		} catch (e: Exception) {
 			err = e
 			return
@@ -318,12 +312,6 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 		completionStatus = CompletionStatus.DOWNLOADED
 	}
 
-	private fun shouldPreserveExisting(destPath: PackwizFilePath): Boolean {
-		if (metadata.preserve) return true
-
-		return isFirstInstallOnlyPath(destPath)
-	}
-
 	private fun markExistingFileAsCurrent(destPath: PackwizFilePath) {
 		alreadyUpToDate = true
 		completionStatus = CompletionStatus.ALREADY_EXISTS_CACHED
@@ -347,23 +335,6 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 	}
 
 	companion object {
-		private val FIRST_INSTALL_ONLY_FILES = setOf(
-			"options.txt",
-			"optionsof.txt",
-			"servers.dat",
-			"servers.dat_old",
-		)
-
-		fun isFirstInstallOnlyPath(destPath: PackwizFilePath): Boolean {
-			val normalized = destPath.nioPath.toString().replace('\\', '/')
-			return normalized.startsWith("config/") || normalized in FIRST_INSTALL_ONLY_FILES
-		}
-
-		fun isUserManagedPath(destPath: PackwizFilePath): Boolean {
-			val normalized = destPath.nioPath.toString().replace('\\', '/')
-			return normalized.startsWith("mods/") || isFirstInstallOnlyPath(destPath)
-		}
-
 		fun createTasksFromIndex(index: IndexFile, downloadSide: Side): MutableList<DownloadTask> {
 			val tasks = ArrayList<DownloadTask>()
 			for (file in index.files) {
