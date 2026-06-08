@@ -141,6 +141,10 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 			try {
 				// TODO: only do this for files that didn't exist before or have been modified since last full update?
 				val destPath = metadata.destURI.rebase(packFolder)
+				if (shouldPreserveExisting(destPath) && destPath.nioPath.toFile().exists()) {
+					markExistingFileAsCurrent(destPath)
+					return
+				}
 				destPath.source(clientHolder).use { src ->
 					// TODO: clean up duplicated code
 					val hash: Hash<*>
@@ -220,8 +224,9 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 		val destPath = metadata.destURI.rebase(packFolder)
 
 		// Don't update files marked with preserve if they already exist on disk
-		if (metadata.preserve) {
+		if (shouldPreserveExisting(destPath)) {
 			if (destPath.nioPath.toFile().exists()) {
+				markExistingFileAsCurrent(destPath)
 				return
 			}
 		}
@@ -313,7 +318,52 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 		completionStatus = CompletionStatus.DOWNLOADED
 	}
 
+	private fun shouldPreserveExisting(destPath: PackwizFilePath): Boolean {
+		if (metadata.preserve) return true
+
+		return isFirstInstallOnlyPath(destPath)
+	}
+
+	private fun markExistingFileAsCurrent(destPath: PackwizFilePath) {
+		alreadyUpToDate = true
+		completionStatus = CompletionStatus.ALREADY_EXISTS_CACHED
+		cachedFile = (cachedFile ?: ManifestFile.File()).also {
+			try {
+				it.hash = metadata.getHashObj(index)
+			} catch (e: Exception) {
+				err = e
+				return
+			}
+			it.isOptional = isOptional
+			it.cachedLocation = destPath
+			metadata.linkedFile?.let { linked ->
+				try {
+					it.linkedFileHash = linked.hash
+				} catch (e: Exception) {
+					err = e
+				}
+			}
+		}
+	}
+
 	companion object {
+		private val FIRST_INSTALL_ONLY_FILES = setOf(
+			"options.txt",
+			"optionsof.txt",
+			"servers.dat",
+			"servers.dat_old",
+		)
+
+		fun isFirstInstallOnlyPath(destPath: PackwizFilePath): Boolean {
+			val normalized = destPath.nioPath.toString().replace('\\', '/')
+			return normalized.startsWith("config/") || normalized in FIRST_INSTALL_ONLY_FILES
+		}
+
+		fun isUserManagedPath(destPath: PackwizFilePath): Boolean {
+			val normalized = destPath.nioPath.toString().replace('\\', '/')
+			return normalized.startsWith("mods/") || isFirstInstallOnlyPath(destPath)
+		}
+
 		fun createTasksFromIndex(index: IndexFile, downloadSide: Side): MutableList<DownloadTask> {
 			val tasks = ArrayList<DownloadTask>()
 			for (file in index.files) {
