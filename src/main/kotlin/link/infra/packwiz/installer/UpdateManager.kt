@@ -252,6 +252,10 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 			val (uri, file) = it.next()
 			if (file.cachedLocation != null) {
 				if (indexFile.files.none { it.file.rebase(opts.packFolder) == uri }) { // File has been removed from the index
+					if (DownloadTask.isUserManagedPath(file.cachedLocation!!)) {
+						it.remove()
+						continue
+					}
 					try {
 						Files.deleteIfExists(file.cachedLocation!!.nioPath)
 					} catch (e: IOException) {
