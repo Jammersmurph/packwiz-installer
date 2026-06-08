@@ -27,6 +27,7 @@ import java.io.IOException
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.CompletionService
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorCompletionService
@@ -247,12 +248,13 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 		}
 
 		ui.submitProgress(InstallProgress("Checking local files..."))
+		val overwriteAllowlist = OverwriteAllowlist.load(opts.packFile, opts.packFolder, clientHolder)
 		val it: MutableIterator<Map.Entry<PackwizFilePath, ManifestFile.File>> = manifest.cachedFiles.entries.iterator()
 		while (it.hasNext()) {
 			val (uri, file) = it.next()
 			if (file.cachedLocation != null) {
 				if (indexFile.files.none { it.file.rebase(opts.packFolder) == uri }) { // File has been removed from the index
-					if (DownloadTask.isUserManagedPath(file.cachedLocation!!)) {
+					if (!overwriteAllowlist.matches(file.cachedLocation!!)) {
 						it.remove()
 						continue
 					}
@@ -282,6 +284,7 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 			Log.info("Side changed, invalidating all mods")
 		}
 		tasks.forEach{ f ->
+			f.setOverwriteAllowed(overwriteAllowlist.matches(f.metadata.destURI.rebase(opts.packFolder)))
 			// TODO: should linkedfile be checked as well? should this be done in the download section?
 			if (invalidateAll) {
 				f.invalidate()
@@ -485,6 +488,73 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 		} else if (cancelledStartGame) {
 			println("Update cancelled by user! Continuing to start game...")
 			exitProcess(0)
+		}
+	}
+
+	private class OverwriteAllowlist(private val packFolder: PackwizFilePath, private val patterns: List<Regex>) {
+		fun matches(path: PackwizFilePath): Boolean {
+			val normalized = relativePath(path.nioPath).replace('\\', '/')
+			return patterns.any { it.matches(normalized) }
+		}
+
+		private fun relativePath(path: Path): String {
+			return try {
+				packFolder.nioPath.relativize(path).toString()
+			} catch (e: IllegalArgumentException) {
+				path.toString()
+			}
+		}
+
+		companion object {
+			private const val FILE_NAME = ".createvc-overwrite-allowlist"
+
+			fun load(packFile: PackwizPath<*>, packFolder: PackwizFilePath, clientHolder: ClientHolder): OverwriteAllowlist {
+				val raw = try {
+					packFile.resolve(FILE_NAME).source(clientHolder).use { it.readUtf8() }
+				} catch (e: RequestException.Response.File.FileNotFound) {
+					""
+				} catch (e: RequestException.Response.HTTP.ErrorCode) {
+					if (e.res.code == 404) "" else throw e
+				}
+
+				return OverwriteAllowlist(packFolder, raw.lineSequence()
+					.map { it.substringBefore('#').trim() }
+					.filter { it.isNotEmpty() }
+					.map { globToRegex(it) }
+					.toList())
+			}
+
+			private fun globToRegex(pattern: String): Regex {
+				val normalized = pattern.trim().trimStart('/').replace('\\', '/')
+				val regex = StringBuilder()
+				if ('/' in normalized) {
+					regex.append('^')
+				} else {
+					regex.append("(^|.*/)")
+				}
+
+				var i = 0
+				while (i < normalized.length) {
+					val c = normalized[i]
+					when (c) {
+						'*' -> {
+							if (i + 1 < normalized.length && normalized[i + 1] == '*') {
+								regex.append(".*")
+								i++
+							} else {
+								regex.append("[^/]*")
+							}
+						}
+						'?' -> regex.append("[^/]")
+						'.', '(', ')', '+', '|', '^', '$', '@', '%', '{', '}', '[', ']' -> regex.append('\\').append(c)
+						else -> regex.append(c)
+					}
+					i++
+				}
+
+				regex.append('$')
+				return Regex(regex.toString())
+			}
 		}
 	}
 
