@@ -32,6 +32,7 @@ import java.util.concurrent.CompletionService
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
+import java.util.jar.JarFile
 import kotlin.system.exitProcess
 
 class UpdateManager internal constructor(private val opts: Options, val ui: IUserInterface) {
@@ -360,7 +361,7 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 			}
 		}
 		tasks.forEach { f ->
-			f.setOverwriteAllowed(overwriteAllowlist.matches(f.metadata.destURI.rebase(opts.packFolder)))
+			f.setOverwriteAllowed(overwriteAllowedForTask(overwriteAllowlist, f))
 		}
 
 		// TODO: different thread pool type?
@@ -429,6 +430,76 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 				ExceptionListResult.CANCEL -> cancelled = true
 				ExceptionListResult.IGNORE -> cancelledStartGame = true
 			}
+		}
+		if (!errorsOccurred) {
+			cleanupDuplicateOfficialMods(tasks)
+		}
+	}
+
+	private fun cleanupDuplicateOfficialMods(tasks: List<DownloadTask>) {
+		val officialMods = mutableMapOf<String, Path>()
+		for (task in tasks.filter { !it.failed() && it.correctSide() }) {
+			val location = task.cachedFile?.cachedLocation ?: continue
+			if (!isJarModsPath(location)) continue
+			val path = absolutePackPath(location)
+			for (modId in readJarModIds(path)) {
+				officialMods[modId] = path
+			}
+		}
+
+		if (officialMods.isEmpty()) return
+
+		val modsDir = opts.packFolder.nioPath.resolve("mods")
+		if (!Files.isDirectory(modsDir)) return
+
+		Files.list(modsDir).use { paths ->
+			paths.filter { Files.isRegularFile(it) && it.fileName.toString().endsWith(".jar", ignoreCase = true) }
+				.forEach { jar ->
+					val normalizedJar = jar.toAbsolutePath().normalize()
+					val duplicateOfOfficial = readJarModIds(normalizedJar).any { modId ->
+						val officialPath = officialMods[modId] ?: return@any false
+						officialPath != normalizedJar
+					}
+					if (duplicateOfOfficial) {
+						try {
+							if (Files.deleteIfExists(normalizedJar)) {
+								Log.info("Deleted ${normalizedJar.fileName} (duplicate official mod jar)")
+							}
+						} catch (e: IOException) {
+							Log.warn("Failed to delete duplicate official mod ${normalizedJar.fileName}", e)
+						}
+					}
+				}
+		}
+	}
+
+	private fun isJarModsPath(path: PackwizFilePath): Boolean {
+		return isModsPath(path) && path.filename.endsWith(".jar", ignoreCase = true)
+	}
+
+	private fun absolutePackPath(path: PackwizFilePath): Path {
+		val nioPath = path.nioPath
+		return if (nioPath.isAbsolute) {
+			nioPath.toAbsolutePath().normalize()
+		} else {
+			opts.packFolder.nioPath.resolve(nioPath).toAbsolutePath().normalize()
+		}
+	}
+
+	private fun readJarModIds(path: Path): Set<String> {
+		return try {
+			JarFile(path.toFile()).use { jar ->
+				sequenceOf("META-INF/neoforge.mods.toml", "META-INF/mods.toml")
+					.mapNotNull { jar.getEntry(it) }
+					.mapNotNull { entry ->
+						jar.getInputStream(entry).bufferedReader().use { reader ->
+							MOD_ID_PATTERN.find(reader.readText())?.groupValues?.get(1)
+						}
+					}
+					.toSet()
+			}
+		} catch (e: Exception) {
+			emptySet()
 		}
 	}
 
@@ -499,6 +570,18 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 		} catch (e: IllegalArgumentException) {
 			false
 		}
+	}
+
+	private fun overwriteAllowedForTask(overwriteAllowlist: OverwriteAllowlist, task: DownloadTask): Boolean {
+		return try {
+			overwriteAllowlist.matches(task.metadata.destURI.rebase(opts.packFolder))
+		} catch (e: NullPointerException) {
+			false
+		}
+	}
+
+	companion object {
+		private val MOD_ID_PATTERN = Regex("modId\\s*=\\s*[\"']([^\"']+)[\"']")
 	}
 
 	private class OverwriteAllowlist(private val packFolder: PackwizFilePath, private val patterns: List<Regex>) {

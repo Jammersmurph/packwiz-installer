@@ -10,6 +10,7 @@ import link.infra.packwiz.installer.target.Side
 import link.infra.packwiz.installer.target.path.PackwizFilePath
 import link.infra.packwiz.installer.ui.data.ExceptionDetails
 import link.infra.packwiz.installer.ui.data.IOptionDetails
+import link.infra.packwiz.installer.util.Log
 import okio.Buffer
 import okio.HashingSink
 import okio.blackholeSink
@@ -319,18 +320,21 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 		if (oldPath == destPath || !isModsPath(packFolder, oldPath)) return
 
 		try {
-			Files.deleteIfExists(oldPath.nioPath)
+			if (Files.deleteIfExists(oldPath.nioPath)) {
+				Log.info("Deleted ${oldPath.filename} (replaced by ${destPath.filename})")
+			}
 		} catch (e: IOException) {
-			// Keep the successful update even if cleanup fails.
+			Log.warn("Failed to delete old tracked mod ${oldPath.filename}", e)
 		}
 	}
 
 	private fun isModsPath(packFolder: PackwizFilePath, path: PackwizFilePath): Boolean {
-		return try {
-			packFolder.nioPath.relativize(path.nioPath).toString().replace('\\', '/').startsWith("mods/")
+		val relativePath = try {
+			packFolder.nioPath.relativize(path.nioPath).toString()
 		} catch (e: IllegalArgumentException) {
-			false
+			path.toString()
 		}
+		return relativePath.replace('\\', '/').removePrefix("./").startsWith("mods/")
 	}
 
 	private fun markExistingFileAsCurrent(destPath: PackwizFilePath) {
