@@ -506,7 +506,7 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 		}
 
 		companion object {
-			private const val FILE_NAME = ".createvc-overwrite-allowlist"
+			private const val FILE_NAME = "createvc-overwrite-allowlist.txt"
 
 			fun load(packFile: PackwizPath<*>, packFolder: PackwizFilePath, clientHolder: ClientHolder): OverwriteAllowlist {
 				val raw = try {
