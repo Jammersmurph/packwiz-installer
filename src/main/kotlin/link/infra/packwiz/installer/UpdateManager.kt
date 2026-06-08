@@ -254,7 +254,7 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 			val (uri, file) = it.next()
 			if (file.cachedLocation != null) {
 				if (indexFile.files.none { it.file.rebase(opts.packFolder) == uri }) { // File has been removed from the index
-					if (!overwriteAllowlist.matches(file.cachedLocation!!)) {
+					if (!overwriteAllowlist.matches(file.cachedLocation!!) && !isModsPath(file.cachedLocation!!)) {
 						it.remove()
 						continue
 					}
@@ -488,6 +488,14 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 		} else if (cancelledStartGame) {
 			println("Update cancelled by user! Continuing to start game...")
 			exitProcess(0)
+		}
+	}
+
+	private fun isModsPath(path: PackwizFilePath): Boolean {
+		return try {
+			opts.packFolder.nioPath.relativize(path.nioPath).toString().replace('\\', '/').startsWith("mods/")
+		} catch (e: IllegalArgumentException) {
+			false
 		}
 	}
 

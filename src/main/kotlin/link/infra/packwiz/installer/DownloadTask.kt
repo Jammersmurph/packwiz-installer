@@ -232,6 +232,7 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 
 		// Don't update files marked with preserve if they already exist on disk
 		if (!overwriteAllowed && destPath.nioPath.toFile().exists()) {
+			deleteOldTrackedModIfRenamed(packFolder, destPath)
 			markExistingFileAsCurrent(destPath)
 			return
 		}
@@ -272,6 +273,7 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 				}
 				Files.copy(data.inputStream(), destPath.nioPath, StandardCopyOption.REPLACE_EXISTING)
 				data.clear()
+				deleteOldTrackedModIfRenamed(packFolder, destPath)
 			} else {
 				// TODO: move println to something visible in the error window
 				println("Invalid hash for " + metadata.destURI.toString())
@@ -310,6 +312,25 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 		}
 
 		completionStatus = CompletionStatus.DOWNLOADED
+	}
+
+	private fun deleteOldTrackedModIfRenamed(packFolder: PackwizFilePath, destPath: PackwizFilePath) {
+		val oldPath = cachedFile?.cachedLocation ?: return
+		if (oldPath == destPath || !isModsPath(packFolder, oldPath)) return
+
+		try {
+			Files.deleteIfExists(oldPath.nioPath)
+		} catch (e: IOException) {
+			// Keep the successful update even if cleanup fails.
+		}
+	}
+
+	private fun isModsPath(packFolder: PackwizFilePath, path: PackwizFilePath): Boolean {
+		return try {
+			packFolder.nioPath.relativize(path.nioPath).toString().replace('\\', '/').startsWith("mods/")
+		} catch (e: IllegalArgumentException) {
+			false
+		}
 	}
 
 	private fun markExistingFileAsCurrent(destPath: PackwizFilePath) {
