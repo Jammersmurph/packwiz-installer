@@ -93,7 +93,7 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 				err = e
 				return
 			}
-			if (currHash == cachedFile.hash) { // Already up to date
+			if (currHash == cachedFile.hash && !overwriteAllowed) { // Already up to date
 				alreadyUpToDate = true
 				metadataRequired = false
 				completionStatus = CompletionStatus.ALREADY_EXISTS_CACHED
