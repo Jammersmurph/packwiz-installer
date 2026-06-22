@@ -146,7 +146,7 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 			try {
 				// TODO: only do this for files that didn't exist before or have been modified since last full update?
 				val destPath = metadata.destURI.rebase(packFolder)
-				if (!overwriteAllowed && destPath.nioPath.toFile().exists()) {
+				if (destPath.nioPath.toFile().exists() && (!overwriteAllowed || isProtectedLocalOptions(packFolder, destPath))) {
 					markExistingFileAsCurrent(destPath)
 					return
 				}
@@ -232,7 +232,7 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 		val destPath = metadata.destURI.rebase(packFolder)
 
 		// Don't update files marked with preserve if they already exist on disk
-		if (!overwriteAllowed && destPath.nioPath.toFile().exists()) {
+		if (destPath.nioPath.toFile().exists() && (!overwriteAllowed || isProtectedLocalOptions(packFolder, destPath))) {
 			deleteOldTrackedModIfRenamed(packFolder, destPath)
 			markExistingFileAsCurrent(destPath)
 			return
@@ -335,6 +335,16 @@ internal class DownloadTask private constructor(val metadata: IndexFile.File, va
 			path.toString()
 		}
 		return relativePath.replace('\\', '/').removePrefix("./").startsWith("mods/")
+	}
+
+	private fun isProtectedLocalOptions(packFolder: PackwizFilePath, path: PackwizFilePath): Boolean {
+		val relativePath = try {
+			packFolder.nioPath.relativize(path.nioPath).toString()
+		} catch (e: IllegalArgumentException) {
+			path.toString()
+		}.replace('\\', '/').removePrefix("./")
+
+		return relativePath == "options.txt" || relativePath == "optionsof.txt"
 	}
 
 	private fun markExistingFileAsCurrent(destPath: PackwizFilePath) {

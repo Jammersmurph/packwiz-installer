@@ -285,6 +285,7 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 			Log.info("Side changed, invalidating all mods")
 		}
 		tasks.forEach{ f ->
+			f.setOverwriteAllowed(overwriteAllowedForTask(overwriteAllowlist, f))
 			// TODO: should linkedfile be checked as well? should this be done in the download section?
 			if (invalidateAll) {
 				f.invalidate()
@@ -360,10 +361,6 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 				ResolveResult.SUCCESS -> break
 			}
 		}
-		tasks.forEach { f ->
-			f.setOverwriteAllowed(overwriteAllowedForTask(overwriteAllowlist, f))
-		}
-
 		// TODO: different thread pool type?
 		val threadPool = Executors.newFixedThreadPool(10)
 		val completionService: CompletionService<DownloadTask> = ExecutorCompletionService(threadPool)
