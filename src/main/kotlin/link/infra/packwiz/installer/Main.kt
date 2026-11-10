@@ -7,6 +7,7 @@ import link.infra.packwiz.installer.target.path.HttpUrlPath
 import link.infra.packwiz.installer.target.path.PackwizFilePath
 import link.infra.packwiz.installer.ui.cli.CLIHandler
 import link.infra.packwiz.installer.ui.gui.GUIHandler
+import link.infra.packwiz.installer.ui.gui.InstallerTheme
 import link.infra.packwiz.installer.ui.wrap
 import link.infra.packwiz.installer.util.Log
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -20,7 +21,6 @@ import java.awt.GraphicsEnvironment
 import java.net.URI
 import java.nio.file.Paths
 import javax.swing.JOptionPane
-import javax.swing.UIManager
 import kotlin.system.exitProcess
 
 @Suppress("unused")
@@ -41,7 +41,7 @@ class Main(args: Array<String>) {
 			if (guiEnabled) {
 				EventQueue.invokeAndWait {
 					try {
-						UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+						InstallerTheme.install()
 					} catch (ignored: Exception) {
 						// Ignore the exceptions, just continue using the ugly L&F
 					}

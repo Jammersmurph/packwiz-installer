@@ -2,28 +2,30 @@ name: Java Gradle Snapshot
 
 on:
   push:
-    branches:
-      - 'main'
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Set up JDK 8
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v6
         with:
           java-version: '8'
-          distribution: 'temurin'
+          distribution: temurin
           cache: gradle
-      - name: Publish with Gradle
-        run: ./gradlew publish -Pgithub.token="${{ secrets.GITHUB_TOKEN }}" -Pbunnycdn.token="${{ secrets.BUNNYCDN_TOKEN }}"
-      - name: Cleanup Gradle Cache
-        # Remove some files from the Gradle cache, so they aren't cached by GitHub Actions.
-        # Restoring these files from a GitHub Actions cache might cause problems for future builds.
-        run: |
-          rm -f ~/.gradle/caches/modules-2/modules-2.lock
-          rm -f ~/.gradle/caches/modules-2/gc.properties
+      - name: Build and test with a virtual display
+        run: xvfb-run -a ./gradlew --no-daemon build
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: packwiz-installer
+          path: build/dist/packwiz-installer.jar
+          if-no-files-found: error

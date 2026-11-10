@@ -1,125 +1,135 @@
 package link.infra.packwiz.installer.ui.gui
 
 import link.infra.packwiz.installer.ui.data.InstallProgress
-import java.awt.BorderLayout
-import java.awt.Component
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
+import java.awt.*
 import javax.swing.*
-import javax.swing.border.EmptyBorder
 
 class InstallWindow(private val handler: GUIHandler) : JFrame() {
-	private var lblProgresslabel: JLabel
-	private var progressBar: JProgressBar
-	private var btnOptions: JButton
-	private val btnCancel: JButton
-	private val btnOk: JButton
-	private val buttonsPanel: JPanel
+	private val lblProgresslabel = JLabel("Preparing your modpack…")
+	private val progressBar = JProgressBar().apply { isIndeterminate = true }
+	private val progressCount = InstallerTheme.caption("Getting ready")
+	private val packTitle = InstallerTheme.heading("Your next adventure")
+	private val activity = JTextArea().apply {
+		isEditable = false
+		font = Font(Font.MONOSPACED, Font.PLAIN, 12)
+		background = InstallerTheme.surface
+		border = InstallerTheme.padding(12)
+	}
+	private val activityPane = JScrollPane(activity).apply {
+		preferredSize = Dimension(600, 170)
+		isVisible = false
+	}
+	private val btnOptions = JButton("Optional mods…").apply {
+		addActionListener {
+			text = "Loading options…"
+			isEnabled = false
+			handler.optionsButtonPressed = true
+		}
+	}
+	private val btnCancel = JButton("Cancel").apply {
+		addActionListener {
+			isEnabled = false
+			handler.cancelButtonPressed = true
+		}
+	}
+	private val btnOk = InstallerTheme.primary(JButton("Continue")).apply {
+		isVisible = false
+		addActionListener { handler.okButtonPressed = true }
+	}
 
 	init {
-		setBounds(100, 100, 493, 95)
-		// Works better with tiling window managers - there isn't any reason to change window size currently anyway
-		isResizable = false
 		defaultCloseOperation = EXIT_ON_CLOSE
+		minimumSize = Dimension(680, 370)
+		contentPane = JPanel(BorderLayout(0, 24)).apply {
+			border = InstallerTheme.padding(28)
+			add(JPanel(BorderLayout(18, 0)).apply {
+				add(object : JComponent() {
+					init { preferredSize = Dimension(64, 64) }
+					override fun paintComponent(g: Graphics) {
+						super.paintComponent(g)
+						g.color = InstallerTheme.accent
+						g.fillRect(4, 4, 52, 16)
+						g.color = Color(87, 120, 75)
+						g.fillRect(4, 20, 52, 36)
+						g.color = Color(57, 78, 53)
+						g.fillRect(16, 28, 12, 12)
+						g.fillRect(40, 44, 16, 12)
+					}
+				}, BorderLayout.WEST)
+				add(JPanel(GridLayout(3, 1, 0, 4)).apply {
+					add(InstallerTheme.caption("PACKWIZ  /  MODPACK INSTALLER"))
+					add(packTitle)
+					add(InstallerTheme.caption("A fresh world starts with an up-to-date pack."))
+				}, BorderLayout.CENTER)
+			}, BorderLayout.NORTH)
+			add(JPanel(BorderLayout(0, 12)).apply {
+				add(JPanel(BorderLayout(0, 12)).apply {
+					background = InstallerTheme.surface
+					border = InstallerTheme.padding(20)
+					add(lblProgresslabel, BorderLayout.NORTH)
+					add(progressBar.apply { preferredSize = Dimension(500, 10) }, BorderLayout.CENTER)
+					add(progressCount, BorderLayout.SOUTH)
+				}, BorderLayout.NORTH)
+				add(activityPane, BorderLayout.CENTER)
+			}, BorderLayout.CENTER)
+			add(JPanel(BorderLayout()).apply {
+				add(JButton("Show activity").apply {
+					addActionListener {
+						activityPane.isVisible = !activityPane.isVisible
+						text = if (activityPane.isVisible) "Hide activity" else "Show activity"
+						if (activityPane.isVisible && this@InstallWindow.height < 520) {
+							this@InstallWindow.setSize(this@InstallWindow.width, 540)
+						}
+						this@InstallWindow.revalidate()
+					}
+				}, BorderLayout.WEST)
+				add(JPanel(FlowLayout(FlowLayout.RIGHT, 8, 0)).apply {
+					add(btnOptions)
+					add(btnCancel)
+					add(btnOk)
+				}, BorderLayout.EAST)
+			}, BorderLayout.SOUTH)
+		}
+		addPropertyChangeListener("title") {
+			packTitle.text = if (title == "packwiz-installer") "Your next adventure" else title
+		}
+		pack()
+		setSize(740, 380)
 		setLocationRelativeTo(null)
-
-		// Progress bar and loading text
-		add(JPanel().apply {
-			border = EmptyBorder(10, 10, 10, 10)
-			layout = BorderLayout(0, 0)
-
-			progressBar = JProgressBar().apply {
-				isIndeterminate = true
-			}
-			add(progressBar, BorderLayout.CENTER)
-
-			lblProgresslabel = JLabel("Loading...")
-			add(lblProgresslabel, BorderLayout.SOUTH)
-		}, BorderLayout.CENTER)
-
-		// Buttons
-		buttonsPanel = JPanel().apply {
-			border = EmptyBorder(0, 5, 0, 5)
-			layout = GridBagLayout()
-
-			btnOptions = JButton("Optional mods...").apply {
-				alignmentX = Component.CENTER_ALIGNMENT
-
-				addActionListener {
-					text = "Loading..."
-					isEnabled = false
-					handler.optionsButtonPressed = true
-				}
-			}
-			add(btnOptions, GridBagConstraints().apply {
-				gridx = 1
-				gridy = 0
-			})
-
-			btnCancel = JButton("Cancel").apply {
-				addActionListener {
-					isEnabled = false
-					handler.cancelButtonPressed = true
-				}
-			}
-			add(btnCancel, GridBagConstraints().apply {
-				gridx = 1
-				gridy = 1
-			})
-		}
-
-		btnOk = JButton("Continue").apply {
-			addActionListener {
-				handler.okButtonPressed = true
-			}
-		}
-		add(buttonsPanel, BorderLayout.EAST)
 	}
 
 	fun displayProgress(progress: InstallProgress) {
+		progressBar.isIndeterminate = !progress.hasProgress
 		if (progress.hasProgress) {
-			progressBar.isIndeterminate = false
-			progressBar.value = progress.progress
 			progressBar.maximum = progress.progressTotal
+			progressBar.value = progress.progress
+			progressCount.text = "${progress.progress} / ${progress.progressTotal} files"
 		} else {
-			progressBar.isIndeterminate = true
-			progressBar.value = 0
+			progressCount.text = "Working on it…"
 		}
 		lblProgresslabel.text = progress.message
+		// Keep the UI log bounded on large packs.
+		if (activity.lineCount > 500) activity.replaceRange("", 0, activity.getLineEndOffset(100))
+		activity.append(progress.message + "\n")
+		activity.caretPosition = activity.document.length
 	}
 
 	fun disableOptionsButton(hasOptions: Boolean) {
-		btnOptions.apply {
-			text = if (hasOptions) { "Optional mods..." } else { "No optional mods" }
- 			isEnabled = false
-		}
+		btnOptions.text = if (hasOptions) "Optional mods…" else "No optional mods"
+		btnOptions.isEnabled = false
 	}
 
 	fun showOk(hideCancel: Boolean) {
-		if (hideCancel) {
-			buttonsPanel.add(btnOk, GridBagConstraints().apply {
-				gridx = 1
-				gridy = 1
-			})
-			buttonsPanel.remove(btnCancel)
-		} else {
-			buttonsPanel.add(btnOk, GridBagConstraints().apply {
-				gridx = 0
-				gridy = 1
-			})
-		}
-		buttonsPanel.revalidate()
+		btnOk.text = "Continue"
+		btnOk.isVisible = true
+		btnCancel.isVisible = !hideCancel
+		rootPane.defaultButton = btnOk
 	}
 
 	fun hideOk() {
-		buttonsPanel.remove(btnOk)
-		if (!buttonsPanel.components.contains(btnCancel)) {
-			buttonsPanel.add(btnCancel, GridBagConstraints().apply {
-				gridx = 1
-				gridy = 1
-			})
-		}
-		buttonsPanel.revalidate()
+		btnOk.isVisible = false
+		btnCancel.isVisible = true
+		rootPane.defaultButton = null
 	}
 
 	fun timeoutOk(remaining: Long) {

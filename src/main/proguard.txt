@@ -13,6 +13,9 @@
 -keep class com.google.gson.reflect.TypeToken { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 
+# Swing loads FlatLaf UI delegates and property values reflectively.
+-keep class com.formdev.flatlaf.** { *; }
+
 -keep @interface kotlin.Metadata { *; }
 
 -renamesourcefileattribute SourceFile

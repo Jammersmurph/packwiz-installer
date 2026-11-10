@@ -11,15 +11,18 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import javax.swing.*
 import javax.swing.border.EmptyBorder
-import javax.swing.event.TableModelListener
-import javax.swing.table.TableModel
+import javax.swing.table.AbstractTableModel
+import javax.swing.table.TableRowSorter
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
+import java.awt.Dimension
 
 class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, future: CompletableFuture<Boolean>, parentWindow: JFrame?) : JDialog(parentWindow, "Select optional mods...", true), ActionListener {
 	private val lblOptionDescription: JTextArea
 	private val tableModel: OptionTableModel
 	private val future: CompletableFuture<Boolean>
 
-	private class OptionTableModel(givenOpts: List<IOptionDetails>) : TableModel {
+	private class OptionTableModel(givenOpts: List<IOptionDetails>) : AbstractTableModel() {
 		private val opts: List<OptionTempHandler>
 
 		init {
@@ -50,12 +53,9 @@ class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, fu
 			if (columnIndex == 0) {
 				val opt = opts[rowIndex]
 				opt.optionValue = aValue as Boolean
+				fireTableCellUpdated(rowIndex, columnIndex)
 			}
 		}
-
-		// Noop, the table model doesn't change!
-		override fun addTableModelListener(l: TableModelListener) {}
-		override fun removeTableModelListener(l: TableModelListener) {}
 
 		fun getDescription(rowIndex: Int) = opts[rowIndex].optionDescription
 
@@ -84,13 +84,24 @@ class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, fu
 		tableModel = OptionTableModel(optList)
 		this.future = future
 
-		setBounds(100, 100, 450, 300)
+		setBounds(100, 100, 720, 460)
+		minimumSize = Dimension(600, 360)
 		setLocationRelativeTo(parentWindow)
 
 		contentPane.apply {
 			layout = BorderLayout()
+			val search = JTextField().apply {
+				putClientProperty("JTextField.placeholderText", "Search optional mods…")
+				toolTipText = "Filter by mod name"
+			}
+			add(JPanel(BorderLayout(0, 12)).apply {
+				border = InstallerTheme.padding(20)
+				add(InstallerTheme.heading("Make it your own"), BorderLayout.NORTH)
+				add(InstallerTheme.caption("Choose the optional mods for your adventure."), BorderLayout.CENTER)
+				add(search, BorderLayout.SOUTH)
+			}, BorderLayout.NORTH)
 			add(JPanel().apply {
-				border = EmptyBorder(5, 5, 5, 5)
+				border = EmptyBorder(0, 20, 16, 20)
 				layout = BorderLayout(0, 0)
 
 				add(JSplitPane().apply {
@@ -113,14 +124,25 @@ class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, fu
 						setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
 						setShowGrid(false)
 						model = tableModel
+						val sorter = TableRowSorter(tableModel)
+						rowSorter = sorter
+						search.document.addDocumentListener(object : DocumentListener {
+							private fun filter() {
+								sorter.rowFilter = RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(search.text), 1)
+							}
+							override fun insertUpdate(e: DocumentEvent) = filter()
+							override fun removeUpdate(e: DocumentEvent) = filter()
+							override fun changedUpdate(e: DocumentEvent) = filter()
+						})
 						columnModel.getColumn(0).resizable = false
-						columnModel.getColumn(0).preferredWidth = 15
-						columnModel.getColumn(0).maxWidth = 15
+						columnModel.getColumn(0).preferredWidth = 36
+						columnModel.getColumn(0).maxWidth = 36
 						columnModel.getColumn(1).resizable = false
 						selectionModel.addListSelectionListener {
 							val i = selectedRow
 							if (i > -1) {
-								lblOptionDescription.text = tableModel.getDescription(i)
+								lblOptionDescription.text = tableModel.getDescription(convertRowIndexToModel(i))
+								lblOptionDescription.caretPosition = 0
 							} else {
 								lblOptionDescription.text = "Select an option..."
 							}
@@ -137,7 +159,7 @@ class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, fu
 				add(JPanel().apply {
 					layout = FlowLayout(FlowLayout.RIGHT)
 
-					add(JButton("OK").apply {
+					add(InstallerTheme.primary(JButton("Save selection")).apply {
 						actionCommand = "OK"
 						addActionListener(this@OptionsSelectWindow)
 

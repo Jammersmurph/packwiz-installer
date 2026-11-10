@@ -12,12 +12,12 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 import javax.swing.JDialog
 import javax.swing.JOptionPane
-import javax.swing.UIManager
 import kotlin.concurrent.timer
 import kotlin.system.exitProcess
 
 class GUIHandler : IUserInterface {
 	private lateinit var frmPackwizlauncher: InstallWindow
+	internal val window: InstallWindow get() = frmPackwizlauncher
 
 	@Volatile
 	override var optionsButtonPressed = false
@@ -51,7 +51,7 @@ class GUIHandler : IUserInterface {
 	init {
 		EventQueue.invokeAndWait {
 			try {
-				UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+				InstallerTheme.install()
 			} catch (e: Exception) {
 				Log.warn("Failed to set look and feel", e)
 			}
@@ -186,7 +186,7 @@ class GUIHandler : IUserInterface {
 				val correspondingNewVer = newVersIndex[oldVer.first]
 				message.append("<li>")
 				message.append(oldVer.first.replaceFirstChar { it.uppercase() })
-				message.append(": <font color=${if (oldVer.second != correspondingNewVer) "#ff0000" else "#000000"}>")
+			message.append(": <font color=${if (oldVer.second != correspondingNewVer) "#ff9999" else "#cbd5df"}>")
 				message.append(oldVer.second ?: "Not found")
 				message.append("</font></li>")
 			}
@@ -198,7 +198,7 @@ class GUIHandler : IUserInterface {
 				val correspondingOldVer = oldVersIndex[newVer.first]
 				message.append("<li>")
 				message.append(newVer.first.replaceFirstChar { it.uppercase() })
-				message.append(": <font color=${if (newVer.second != correspondingOldVer) "#00ff00" else "#000000"}>")
+			message.append(": <font color=${if (newVer.second != correspondingOldVer) "#84cc76" else "#cbd5df"}>")
 				message.append(newVer.second ?: "Not found")
 				message.append("</font></li>")
 			}
@@ -236,7 +236,8 @@ class GUIHandler : IUserInterface {
 					optionalSelectedLatch.countDown()
 					cancel()
 				} else {
-					frmPackwizlauncher.timeoutOk(timeout - count)
+					val remaining = timeout - count
+					EventQueue.invokeLater { frmPackwizlauncher.timeoutOk(remaining) }
 					count += 1
 				}
 			};

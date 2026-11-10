@@ -47,7 +47,8 @@ class ExceptionListWindow(eList: List<ExceptionDetails>, future: CompletableFutu
 	 * Create the dialog.
 	 */
 	init {
-		setBounds(100, 100, 540, 340)
+		setBounds(100, 100, 920, 500)
+		minimumSize = java.awt.Dimension(860, 400)
 		setLocationRelativeTo(parentWindow)
 
 		contentPane.apply {
@@ -55,7 +56,8 @@ class ExceptionListWindow(eList: List<ExceptionDetails>, future: CompletableFutu
 
 			// Error panel
 			add(JPanel().apply {
-				add(JLabel("One or more errors were encountered while installing the modpack!").apply {
+				border = InstallerTheme.padding(16)
+				add(InstallerTheme.heading("Some downloads need attention", 20f).apply {
 					icon = UIManager.getIcon("OptionPane.warningIcon")
 				})
 			}, BorderLayout.NORTH)
@@ -107,7 +109,7 @@ class ExceptionListWindow(eList: List<ExceptionDetails>, future: CompletableFutu
 
 				// Right buttons
 				add(JPanel().apply {
-					add(JButton("Continue").apply {
+					add(InstallerTheme.primary(JButton("Continue")).apply {
 						toolTipText = "Attempt to continue installing, excluding the failed downloads"
 						addActionListener {
 							future.complete(IUserInterface.ExceptionListResult.CONTINUE)

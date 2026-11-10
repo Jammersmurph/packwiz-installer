@@ -3,7 +3,6 @@ plugins {
 	application
 	id("com.github.johnrengelman.shadow") version "7.1.2"
 	id("com.palantir.git-version") version "0.13.0"
-	id("com.github.breadmoirai.github-release") version "2.4.1"
 	kotlin("jvm") version "1.7.10"
 	id("com.github.jk1.dependency-license-report") version "2.0"
 	`maven-publish`
@@ -33,6 +32,8 @@ val distJarOutput by configurations.creating {
 }
 
 dependencies {
+	implementation("com.formdev:flatlaf:3.5.4")
+	testImplementation("junit:junit:4.13.2")
 	implementation("commons-cli:commons-cli:1.5.0")
 	implementation("com.google.code.gson:gson:2.9.0")
 	implementation("com.squareup.okio:okio:3.1.0")
@@ -45,6 +46,13 @@ dependencies {
 
 application {
 	mainClass.set("link.infra.packwiz.installer.RequiresBootstrap")
+}
+
+tasks.register<JavaExec>("previewGui") {
+	group = "application"
+	description = "Preview the GUI with simulated data without changing a modpack."
+	classpath = sourceSets.main.get().runtimeClasspath
+	mainClass.set("link.infra.packwiz.installer.ui.gui.GuiPreview")
 }
 
 val gitVersion: groovy.lang.Closure<*> by extra
@@ -134,25 +142,6 @@ tasks.build {
 	dependsOn(copyJar)
 }
 
-githubRelease {
-	owner("comp500")
-	repo("packwiz-installer")
-	tagName("${project.version}")
-	releaseName("Release ${project.version}")
-	draft(true)
-	token(findProperty("github.token") as String?)
-	releaseAssets(layout.buildDirectory.dir("dist").map { it.file("packwiz-installer.jar") }.get())
-}
-
-tasks.githubRelease {
-	dependsOn(copyJar)
-	enabled = project.hasProperty("github.token") && project.findProperty("release") == "true"
-}
-
-tasks.publish {
-	dependsOn(tasks.githubRelease)
-}
-
 tasks.compileKotlin {
 	kotlinOptions {
 		jvmTarget = "1.8"
@@ -203,4 +192,3 @@ if (project.hasProperty("bunnycdn.token")) {
 		}
 	}
 }
-
