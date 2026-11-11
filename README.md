@@ -24,13 +24,29 @@ Cancel closes it early. The normal installer still uses the bootstrapper.
 
 ## GitHub builds and releases
 
-Pushes to `main` and pull requests build on Java 8 and run the GUI tests under
-a virtual display. The resulting `packwiz-installer.jar` is available in the
-workflow's `packwiz-installer` artifact. The snapshot workflow can also be run
-manually from the Actions tab.
+Pushes to `main`, `dev`, and pull requests build on Java 8 and run the GUI tests
+under a virtual display. The JAR is also uploaded as a workflow artifact.
 
-Pushing a version tag such as `v1.0.0` builds and tests the installer, then
-publishes a GitHub release in this repository with `packwiz-installer.jar`
-attached. No BunnyCDN credentials or personal access token are required; the
-workflow uses GitHub's built-in token. Normal version tags produce releases
-that the `/releases/latest` updater endpoint can discover.
+- **`main`:** Each successful build publishes a stable release with a unique
+  `build-<run-id>-<attempt>` tag pointing at the built commit. The new release is
+  marked latest, so the updater's `/releases/latest` endpoint discovers it.
+- **`dev`:** Each successful build replaces the JAR in a single rolling
+  prerelease named **Development (rolling)**. Its `dev` tag moves to the built
+  commit. Development builds never become the latest stable release.
+- **Pull requests:** Build and test only; no release is published.
+
+Every release asset is named **`packwiz-installer.jar`**, regardless of its tag.
+No BunnyCDN credentials or personal access token are required; the workflow
+uses GitHub's built-in token. Pushing tags alone does not publish a release.
+
+Stable updater configuration:
+
+```properties
+packupdater.installer-url=https://api.github.com/repos/Jammersmurph/packwiz-installer/releases/latest
+```
+
+To explicitly use rolling development builds instead:
+
+```properties
+packupdater.installer-url=https://api.github.com/repos/Jammersmurph/packwiz-installer/releases/tags/dev
+```
