@@ -39,6 +39,8 @@ class InstallWindow(private val handler: GUIHandler) : JFrame() {
 
 	init {
 		defaultCloseOperation = EXIT_ON_CLOSE
+		// Restore the original installer's fixed-size hints for tiling window managers.
+		isResizable = false
 		minimumSize = Dimension(680, 370)
 		contentPane = JPanel(BorderLayout(0, 24)).apply {
 			border = InstallerTheme.padding(28)

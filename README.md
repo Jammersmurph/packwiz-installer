@@ -3,7 +3,7 @@ An installer for launching packwiz modpacks with MultiMC. You'll need [the boots
 
 ## Desktop interface
 
-The installer uses a dark, Minecraft-inspired Swing interface with a resizable
+The installer uses a dark, Minecraft-inspired Swing interface with a fixed-size
 progress window, expandable activity log, and searchable optional-mod selection.
 Use `--title "My Modpack"` to personalize the header, or `--no-gui` for the CLI.
 
@@ -17,7 +17,7 @@ JAVA_HOME=/path/to/jdk-17 ./gradlew previewGui
 
 This runs a simulated installation and provides buttons to preview optional mods
 and download errors. It does not download mods or change an installation. Try
-expanding the activity log, resizing the window, searching and toggling mods,
+expanding the activity log, searching and toggling mods,
 and selecting a failed file to inspect its details. The preview closes
 automatically when the simulated update finishes, just like the real installer;
 Cancel closes it early. The normal installer still uses the bootstrapper.

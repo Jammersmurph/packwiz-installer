@@ -30,6 +30,7 @@ class GuiTest {
 
 	@Test fun progressAndActions() = onUi { handler ->
 		val window = handler.window
+		assertFalse(window.isResizable)
 		window.displayProgress(InstallProgress("Downloading test mod", 3, 10))
 		val bar = components(window).filterIsInstance<JProgressBar>().single()
 		assertFalse(bar.isIndeterminate)
