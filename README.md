@@ -32,15 +32,17 @@ CI builds on Java 8 and additionally runs this packaged-GUI check on Java 21.
 
 ## GitHub builds and releases
 
-Pushes to `main`, `dev`, and pull requests build on Java 8 and run the GUI tests
+Pushes to `main` and pull requests build on Java 8 and run the GUI tests
 under a virtual display. The JAR is also uploaded as a workflow artifact.
 
 - **`main`:** Each successful build publishes a stable release with a unique
   `build-<run-id>-<attempt>` tag pointing at the built commit. The new release is
   marked latest, so the updater's `/releases/latest` endpoint discovers it.
-- **`dev`:** Each successful build replaces the JAR in a single rolling
-  prerelease named **Development (rolling)**. Its `dev` tag moves to the built
-  commit. Development builds never become the latest stable release.
+  The JAR's `Implementation-Version` matches that tag, so the bootstrapper
+  does not download it again unless a newer release is published.
+- **Development:** Test locally using `./gradlew build` and `./gradlew previewGui`.
+  Pushes to `dev` do not build or publish anything. The branch remains available
+  for development work.
 - **Pull requests:** Build and test only; no release is published.
 
 Every release asset is named **`packwiz-installer.jar`**, regardless of its tag.
@@ -53,8 +55,5 @@ Stable updater configuration:
 packupdater.installer-url=https://api.github.com/repos/Jammersmurph/packwiz-installer/releases/latest
 ```
 
-To explicitly use rolling development builds instead:
-
-```properties
-packupdater.installer-url=https://api.github.com/repos/Jammersmurph/packwiz-installer/releases/tags/dev
-```
+Release automation passes `-PinstallerVersion=<release-tag>` to Gradle before
+building. Local builds default to a Git-derived version instead.

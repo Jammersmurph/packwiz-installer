@@ -56,7 +56,7 @@ tasks.register<JavaExec>("previewGui") {
 }
 
 val gitVersion: groovy.lang.Closure<*> by extra
-version = gitVersion()
+version = providers.gradleProperty("installerVersion").orNull ?: gitVersion()
 
 tasks.jar {
 	manifest {
@@ -150,6 +150,7 @@ val bootstrapGuiTest by tasks.registering(JavaExec::class) {
 	classpath = files(sourceSets.test.get().output)
 	mainClass.set("link.infra.packwiz.installer.ui.gui.BootstrapGuiSmokeTest")
 	args(layout.buildDirectory.file("dist/packwiz-installer.jar").get().asFile.absolutePath)
+	args(project.version.toString())
 }
 
 tasks.check {

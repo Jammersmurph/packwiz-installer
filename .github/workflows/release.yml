@@ -2,15 +2,20 @@ name: Build and Publish Installer
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
 
 permissions:
   contents: write
 
-# Serialize publication within each channel so rolling assets cannot race.
+# Serialize stable publication.
 concurrency:
   group: installer-release-${{ github.ref }}
   cancel-in-progress: false
+
+# The bootstrapper compares the JAR's Implementation-Version with the release tag.
+# Choose the version before building, and reuse it when publishing.
+env:
+  INSTALLER_VERSION: build-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   build:
@@ -26,7 +31,7 @@ jobs:
           distribution: temurin
           cache: gradle
       - name: Build and test with a virtual display
-        run: xvfb-run -a ./gradlew --no-daemon build
+        run: xvfb-run -a ./gradlew --no-daemon build -PinstallerVersion="$INSTALLER_VERSION"
       - name: Set up JDK 21 for bootstrapper compatibility test
         uses: actions/setup-java@v6
         with:
@@ -37,6 +42,7 @@ jobs:
           xvfb-run -a java -cp build/classes/java/test
           link.infra.packwiz.installer.ui.gui.BootstrapGuiSmokeTest
           build/dist/packwiz-installer.jar
+          "$INSTALLER_VERSION"
       - name: Upload installer
         uses: actions/upload-artifact@v7
         with:
@@ -44,36 +50,10 @@ jobs:
           path: build/dist/packwiz-installer.jar
           if-no-files-found: error
       - name: Publish stable release
-        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          tag="build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          gh release create "$tag" build/dist/packwiz-installer.jar \
+          gh release create "$INSTALLER_VERSION" build/dist/packwiz-installer.jar \
             --target "$GITHUB_SHA" --latest --generate-notes \
             --title "Installer build ${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
-      - name: Publish rolling development prerelease
-        if: github.ref == 'refs/heads/dev'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          # The dev tag and its release intentionally track the newest tested dev build.
-          if gh api "repos/$GH_REPO/git/ref/tags/dev" --silent; then
-            gh api --method PATCH "repos/$GH_REPO/git/refs/tags/dev" \
-              -f sha="$GITHUB_SHA" -F force=true --silent
-          else
-            gh api --method POST "repos/$GH_REPO/git/refs" \
-              -f ref=refs/tags/dev -f sha="$GITHUB_SHA" --silent
-          fi
-          notes="Rolling development build from commit $GITHUB_SHA. Not a stable release."
-          if gh release view dev >/dev/null 2>&1; then
-            gh release upload dev build/dist/packwiz-installer.jar --clobber
-            gh release edit dev --prerelease --latest=false \
-              --title "Development (rolling)" --notes "$notes"
-          else
-            gh release create dev build/dist/packwiz-installer.jar \
-              --verify-tag --prerelease --latest=false \
-              --title "Development (rolling)" --notes "$notes"
-          fi

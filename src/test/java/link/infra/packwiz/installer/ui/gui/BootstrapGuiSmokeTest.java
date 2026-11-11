@@ -7,10 +7,12 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Window;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.jar.JarInputStream;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.AbstractButton;
@@ -20,6 +22,14 @@ import javax.swing.UIManager;
 /** Runs without installer dependencies on the JVM class path, just like the bootstrapper. */
 public final class BootstrapGuiSmokeTest {
 	public static void main(String[] args) throws Exception {
+		if (args.length > 1) {
+			try (JarInputStream jar = new JarInputStream(new FileInputStream(args[0]))) {
+				String version = jar.getManifest().getMainAttributes().getValue("Implementation-Version");
+				if (!args[1].equals(version))
+					throw new AssertionError("Expected installer version " + args[1] + ", got " + version);
+			}
+			System.out.println("Packaged installer version matches " + args[1]);
+		}
 		if (GraphicsEnvironment.isHeadless()) {
 			System.out.println("SKIPPED bootstrap GUI smoke test: a display is required (use xvfb-run).");
 			return;
