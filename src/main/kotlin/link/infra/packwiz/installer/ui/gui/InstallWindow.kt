@@ -8,7 +8,7 @@ class InstallWindow(private val handler: GUIHandler) : JFrame() {
 	private val lblProgresslabel = JLabel("Preparing your modpack…")
 	private val progressBar = JProgressBar().apply { isIndeterminate = true }
 	private val progressCount = InstallerTheme.caption("Getting ready")
-	private val packTitle = InstallerTheme.heading("Your next adventure")
+	private val packTitle = InstallerTheme.heading("Modpack Updater")
 	private val activity = JTextArea().apply {
 		isEditable = false
 		font = Font(Font.MONOSPACED, Font.PLAIN, 12)
@@ -91,7 +91,7 @@ class InstallWindow(private val handler: GUIHandler) : JFrame() {
 			}, BorderLayout.SOUTH)
 		}
 		addPropertyChangeListener("title") {
-			packTitle.text = if (title == "packwiz-installer") "Your next adventure" else title
+			packTitle.text = if (title == "packwiz-installer") "Modpack Updater" else title
 		}
 		pack()
 		setSize(740, 380)
