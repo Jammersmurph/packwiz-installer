@@ -27,6 +27,16 @@ jobs:
           cache: gradle
       - name: Build and test with a virtual display
         run: xvfb-run -a ./gradlew --no-daemon build
+      - name: Set up JDK 21 for bootstrapper compatibility test
+        uses: actions/setup-java@v6
+        with:
+          java-version: '21'
+          distribution: temurin
+      - name: Verify packaged GUI on Java 21
+        run: >-
+          xvfb-run -a java -cp build/classes/java/test
+          link.infra.packwiz.installer.ui.gui.BootstrapGuiSmokeTest
+          build/dist/packwiz-installer.jar
       - name: Upload installer
         uses: actions/upload-artifact@v7
         with:

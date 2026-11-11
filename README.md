@@ -22,6 +22,14 @@ and selecting a failed file to inspect its details. The preview closes
 automatically when the simulated update finishes, just like the real installer;
 Cancel closes it early. The normal installer still uses the bootstrapper.
 
+### Bootstrapper compatibility check
+
+`./gradlew bootstrapGuiTest` loads the final, shrunk installer JAR in an isolated
+class loader, matching the bootstrapper rather than the development class path.
+It checks UI delegates and fonts and fails on GUI initialization errors. This
+check also runs during `build` (with a display, or under `xvfb-run` on Linux).
+CI builds on Java 8 and additionally runs this packaged-GUI check on Java 21.
+
 ## GitHub builds and releases
 
 Pushes to `main`, `dev`, and pull requests build on Java 8 and run the GUI tests

@@ -142,6 +142,20 @@ tasks.build {
 	dependsOn(copyJar)
 }
 
+val bootstrapGuiTest by tasks.registering(JavaExec::class) {
+	group = "verification"
+	description = "Verify the packaged GUI in an isolated bootstrapper-style class loader."
+	dependsOn(copyJar, tasks.testClasses)
+	// Deliberately exclude main classes and dependencies from the parent class loader.
+	classpath = files(sourceSets.test.get().output)
+	mainClass.set("link.infra.packwiz.installer.ui.gui.BootstrapGuiSmokeTest")
+	args(layout.buildDirectory.file("dist/packwiz-installer.jar").get().asFile.absolutePath)
+}
+
+tasks.check {
+	dependsOn(bootstrapGuiTest)
+}
+
 tasks.compileKotlin {
 	kotlinOptions {
 		jvmTarget = "1.8"

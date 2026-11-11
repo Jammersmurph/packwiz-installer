@@ -13,7 +13,11 @@ internal object InstallerTheme {
 	val muted = Color(165, 178, 187)
 
 	fun install() {
-		FlatDarkLaf.setup()
+		// The bootstrapper loads this JAR in a child URLClassLoader, while Swing's
+		// event thread keeps the parent loader. Explicitly tell UIDefaults where
+		// to resolve FlatLaf's UI delegates, including widgets created later.
+		UIManager.put("ClassLoader", InstallerTheme::class.java.classLoader)
+		UIManager.setLookAndFeel(FlatDarkLaf())
 		UIManager.put("Panel.background", background)
 		UIManager.put("Button.arc", 12)
 		UIManager.put("Component.arc", 12)
