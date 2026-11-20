@@ -14,6 +14,9 @@ interface IUserInterface {
 	fun showErrorAndExit(message: String, e: Exception?): Nothing
 
 	var title: String
+	/** Headless interfaces do not need to fetch optional artwork. */
+	val supportsPackIcon: Boolean get() = false
+	fun setPackIcon(data: ByteArray) {}
 	fun submitProgress(progress: InstallProgress)
 	// Return true if the installation was cancelled!
 	fun showOptions(options: List<IOptionDetails>): Boolean

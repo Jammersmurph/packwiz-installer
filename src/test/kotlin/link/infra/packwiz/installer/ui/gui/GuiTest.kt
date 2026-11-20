@@ -11,6 +11,9 @@ import java.awt.Component
 import java.awt.Container
 import java.awt.EventQueue
 import java.awt.GraphicsEnvironment
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import javax.imageio.ImageIO
 import java.util.concurrent.CompletableFuture
 import javax.swing.*
 
@@ -32,6 +35,7 @@ class GuiTest {
 		val window = handler.window
 		assertFalse(window.isResizable)
 		assertNotNull(window.iconImage)
+		assertEquals(InstallerTheme.logo.getWidth(null), InstallerTheme.logo.getHeight(null))
 		assertTrue(components(window).filterIsInstance<JLabel>().any {
 			it.icon != null && it.accessibleContext.accessibleName == "Packwiz Updater logo"
 		})
@@ -67,6 +71,39 @@ class GuiTest {
 			EventQueue.invokeAndWait {
 				assertEquals("Create VC", handler.window.title)
 				assertTrue(components(handler.window).filterIsInstance<JLabel>().any { it.text == "Create VC" })
+			}
+		} finally { handler.dispose() }
+	}
+
+	@Test fun packIconReplacesHeaderAndWindowIconWithoutStretching() {
+		assumeFalse("GUI tests require a display", GraphicsEnvironment.isHeadless())
+		val handler = GUIHandler()
+		try {
+			val image = BufferedImage(32, 32, BufferedImage.TYPE_INT_ARGB)
+			val bytes = ByteArrayOutputStream().apply { ImageIO.write(image, "png", this) }.toByteArray()
+			handler.setPackIcon(bytes)
+			EventQueue.invokeAndWait {
+				assertEquals(32, handler.window.iconImage.getWidth(null))
+				val logo = components(handler.window).filterIsInstance<JLabel>().single {
+					it.accessibleContext.accessibleName == "Modpack icon"
+				}
+				assertEquals(logo.icon.iconWidth, logo.icon.iconHeight)
+			}
+		} finally { handler.dispose() }
+	}
+
+	@Test fun invalidAndHugeIconsKeepDefaultLogo() {
+		assumeFalse("GUI tests require a display", GraphicsEnvironment.isHeadless())
+		val handler = GUIHandler()
+		try {
+			handler.setPackIcon("not a PNG".toByteArray())
+			val huge = BufferedImage(2049, 1, BufferedImage.TYPE_INT_ARGB)
+			handler.setPackIcon(ByteArrayOutputStream().apply { ImageIO.write(huge, "png", this) }.toByteArray())
+			EventQueue.invokeAndWait {
+				assertSame(InstallerTheme.logo, handler.window.iconImage)
+				assertTrue(components(handler.window).filterIsInstance<JLabel>().any {
+					it.accessibleContext.accessibleName == "Packwiz Updater logo"
+				})
 			}
 		} finally { handler.dispose() }
 	}

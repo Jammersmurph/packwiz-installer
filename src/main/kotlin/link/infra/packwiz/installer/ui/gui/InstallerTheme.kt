@@ -19,7 +19,17 @@ internal object InstallerTheme {
 		})
 	}
 
-	fun logoLabel() = JLabel(ImageIcon(logo.getScaledInstance(180, 101, Image.SCALE_SMOOTH))).apply {
+	fun logoIcon(image: Image): ImageIcon {
+		val scale = minOf(112.0 / image.getWidth(null), 112.0 / image.getHeight(null))
+		return ImageIcon(image.getScaledInstance(
+			(image.getWidth(null) * scale).toInt().coerceAtLeast(1),
+			(image.getHeight(null) * scale).toInt().coerceAtLeast(1),
+			Image.SCALE_SMOOTH
+		))
+	}
+
+	fun logoLabel() = JLabel(logoIcon(logo)).apply {
+		preferredSize = java.awt.Dimension(112, 112)
 		accessibleContext.accessibleName = "Packwiz Updater logo"
 	}
 

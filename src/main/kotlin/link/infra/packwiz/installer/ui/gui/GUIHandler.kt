@@ -18,6 +18,16 @@ import kotlin.system.exitProcess
 class GUIHandler : IUserInterface {
 	private lateinit var frmPackwizlauncher: InstallWindow
 	internal val window: InstallWindow get() = frmPackwizlauncher
+	override val supportsPackIcon = true
+
+	override fun setPackIcon(data: ByteArray) {
+		try {
+			val image = decodePackIcon(data) ?: return
+			EventQueue.invokeLater { frmPackwizlauncher.displayPackIcon(image) }
+		} catch (e: Exception) {
+			Log.info("Invalid pack icon; using the default logo")
+		}
+	}
 
 	@Volatile
 	override var optionsButtonPressed = false

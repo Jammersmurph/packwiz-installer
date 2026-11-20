@@ -9,6 +9,7 @@ class InstallWindow(private val handler: GUIHandler) : JFrame() {
 	private val progressBar = JProgressBar().apply { isIndeterminate = true }
 	private val progressCount = InstallerTheme.caption("Getting ready")
 	private val packTitle = InstallerTheme.heading("Modpack Updater")
+	private val packLogo = InstallerTheme.logoLabel()
 	private val activity = JTextArea().apply {
 		isEditable = false
 		font = Font(Font.MONOSPACED, Font.PLAIN, 12)
@@ -46,7 +47,7 @@ class InstallWindow(private val handler: GUIHandler) : JFrame() {
 		contentPane = JPanel(BorderLayout(0, 24)).apply {
 			border = InstallerTheme.padding(28)
 			add(JPanel(BorderLayout(18, 0)).apply {
-				add(InstallerTheme.logoLabel(), BorderLayout.WEST)
+				add(packLogo, BorderLayout.WEST)
 				add(JPanel(GridLayout(3, 1, 0, 4)).apply {
 					add(InstallerTheme.caption("PACKWIZ UPDATER"))
 					add(packTitle)
@@ -103,6 +104,12 @@ class InstallWindow(private val handler: GUIHandler) : JFrame() {
 		if (activity.lineCount > 500) activity.replaceRange("", 0, activity.getLineEndOffset(100))
 		activity.append(progress.message + "\n")
 		activity.caretPosition = activity.document.length
+	}
+
+	fun displayPackIcon(image: Image) {
+		iconImage = image
+		packLogo.icon = InstallerTheme.logoIcon(image)
+		packLogo.accessibleContext.accessibleName = "Modpack icon"
 	}
 
 	fun disableOptionsButton(hasOptions: Boolean) {

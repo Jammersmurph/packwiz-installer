@@ -21,6 +21,7 @@ import link.infra.packwiz.installer.ui.IUserInterface
 import link.infra.packwiz.installer.ui.IUserInterface.CancellationResult
 import link.infra.packwiz.installer.ui.IUserInterface.ExceptionListResult
 import link.infra.packwiz.installer.ui.data.InstallProgress
+import link.infra.packwiz.installer.ui.data.loadPackIcon
 import link.infra.packwiz.installer.util.Log
 import okio.buffer
 import java.io.IOException
@@ -102,6 +103,9 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 
 		if (opts.title == null && pf.name.isNotBlank()) {
 			ui.title = pf.name
+		}
+		if (ui.supportsPackIcon && !ui.cancelButtonPressed) {
+			loadPackIcon(opts.packFile, clientHolder)?.let { ui.setPackIcon(it) }
 		}
 
 		if (ui.cancelButtonPressed) {

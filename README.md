@@ -8,6 +8,13 @@ progress window, expandable activity log, and searchable optional-mod selection.
 The header and window title use the name from `pack.toml` once it loads.
 Use `--title "My Modpack"` to override it, or `--no-gui` for the CLI.
 
+Add an `icon.png` beside your hosted `pack.toml` to replace the default logo in
+the updater header and window icon. This also works for local packs. Artwork
+keeps its aspect ratio; missing, invalid, or oversized icons leave the default
+logo unchanged. The bundled logo is square; pack artwork fits a square display
+area without stretching. Icons must be PNGs no larger than 1 MiB and 2048×2048 pixels.
+Remote artwork has a three-second deadline, and headless installs skip it.
+
 ### Safe local preview
 
 With **JDK 17** installed (compatible with this project's Gradle 7.5 wrapper):

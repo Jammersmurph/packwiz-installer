@@ -6,12 +6,18 @@ import okhttp3.HttpUrl
 import okhttp3.Request
 import okio.BufferedSource
 import okio.IOException
+import java.util.concurrent.TimeUnit
 
 class HttpUrlPath(private val url: HttpUrl, path: String? = null): PackwizPath<HttpUrlPath>(path) {
 	private fun build() = if (path == null) { url } else { url.newBuilder().addPathSegments(path).build() }
 
 	@Throws(RequestException::class)
 	override fun source(clientHolder: ClientHolder): BufferedSource {
+		return source(clientHolder, 0)
+	}
+
+	/** Optional assets can use a short deadline without changing normal download timeouts. */
+	fun source(clientHolder: ClientHolder, timeoutMillis: Long): BufferedSource {
 		val req = Request.Builder()
 			.url(build())
 			.header("Accept", "application/octet-stream")
@@ -19,7 +25,9 @@ class HttpUrlPath(private val url: HttpUrl, path: String? = null): PackwizPath<H
 			.get()
 			.build()
 		try {
-			val res = clientHolder.okHttpClient.newCall(req).execute()
+			val call = clientHolder.okHttpClient.newCall(req)
+			if (timeoutMillis > 0) call.timeout().timeout(timeoutMillis, TimeUnit.MILLISECONDS)
+			val res = call.execute()
 			// Can't use .use since it would close the response body before returning it to the caller
 			try {
 				if (!res.isSuccessful) {

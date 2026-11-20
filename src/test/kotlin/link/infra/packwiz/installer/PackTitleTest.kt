@@ -18,6 +18,9 @@ class PackTitleTest {
 
 	private class RecordingUI : IUserInterface by CLIHandler() {
 		override var title = "packwiz-installer"
+		override val supportsPackIcon = true
+		var iconData: ByteArray? = null
+		override fun setPackIcon(data: ByteArray) { iconData = data }
 		val messages = mutableListOf<String>()
 		override fun submitProgress(progress: InstallProgress) { messages.add(progress.message) }
 		override fun showErrorAndExit(message: String, e: Exception?): Nothing {
@@ -25,8 +28,9 @@ class PackTitleTest {
 		}
 	}
 
-	private fun fixture(name: String, title: String? = null): UpdateManager.Options {
+	private fun fixture(name: String, title: String? = null, icon: ByteArray? = null): UpdateManager.Options {
 		val source = temporary.newFolder("source")
+		if (icon != null) File(source, "icon.png").writeBytes(icon)
 		val installed = temporary.newFolder("installed")
 		val launcher = temporary.newFolder("launcher")
 		val index = File(source, "index.toml").apply {
@@ -72,5 +76,17 @@ class PackTitleTest {
 		val ui = RecordingUI()
 		UpdateManager(fixture(""), ui)
 		assertEquals("packwiz-installer", ui.title)
+	}
+
+	@Test fun loadsSiblingIconOnFirstInstallAndCachedLaunch() {
+		val png = javaClass.getResourceAsStream("/branding/packupdater.png")!!.use { it.readBytes() }
+		val options = fixture("Create VC", icon = png)
+		val first = RecordingUI()
+		UpdateManager(options, first)
+		assertArrayEquals(png, first.iconData)
+		val cached = RecordingUI()
+		UpdateManager(options, cached)
+		assertArrayEquals(png, cached.iconData)
+		assertTrue(cached.messages.any { it == "Modpack is already up to date!" })
 	}
 }
