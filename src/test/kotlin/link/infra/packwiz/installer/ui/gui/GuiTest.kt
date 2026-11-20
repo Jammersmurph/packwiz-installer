@@ -31,6 +31,10 @@ class GuiTest {
 	@Test fun progressAndActions() = onUi { handler ->
 		val window = handler.window
 		assertFalse(window.isResizable)
+		assertNotNull(window.iconImage)
+		assertTrue(components(window).filterIsInstance<JLabel>().any {
+			it.icon != null && it.accessibleContext.accessibleName == "Packwiz Updater logo"
+		})
 		window.displayProgress(InstallProgress("Downloading test mod", 3, 10))
 		val bar = components(window).filterIsInstance<JProgressBar>().single()
 		assertFalse(bar.isIndeterminate)
@@ -53,6 +57,18 @@ class GuiTest {
 		val buttons = components(window).filterIsInstance<JButton>()
 		assertFalse(buttons.single { it.text == "Continue" }.isVisible)
 		assertFalse(handler.okButtonPressed)
+	}
+
+	@Test fun packTitleUpdatesHeaderAndWindowTitle() {
+		assumeFalse("GUI tests require a display", GraphicsEnvironment.isHeadless())
+		val handler = GUIHandler()
+		try {
+			handler.title = "Create VC"
+			EventQueue.invokeAndWait {
+				assertEquals("Create VC", handler.window.title)
+				assertTrue(components(handler.window).filterIsInstance<JLabel>().any { it.text == "Create VC" })
+			}
+		} finally { handler.dispose() }
 	}
 
 	@Test fun filteredSelectionSavesCorrectMod() = onUi { handler ->

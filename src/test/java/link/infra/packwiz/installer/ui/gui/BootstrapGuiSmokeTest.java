@@ -47,6 +47,8 @@ public final class BootstrapGuiSmokeTest {
 				Field field = handlerClass.getDeclaredField("frmPackwizlauncher");
 				field.setAccessible(true);
 				Window window = (Window) field.get(handler);
+				if (window.getIconImages().isEmpty())
+					throw new AssertionError("The bundled window logo is missing");
 				EventQueue.invokeAndWait(() -> {
 					if (!UIManager.getLookAndFeel().getClass().getName().contains("FlatDarkLaf"))
 						throw new AssertionError("The dark theme was not installed");

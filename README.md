@@ -3,9 +3,10 @@ An installer for launching packwiz modpacks with MultiMC. You'll need [the boots
 
 ## Desktop interface
 
-The installer uses a dark, Minecraft-inspired Swing interface with a fixed-size
+The installer uses a dark purple Swing interface with PackUpdater logo branding and a fixed-size
 progress window, expandable activity log, and searchable optional-mod selection.
-Use `--title "My Modpack"` to personalize the header, or `--no-gui` for the CLI.
+The header and window title use the name from `pack.toml` once it loads.
+Use `--title "My Modpack"` to override it, or `--no-gui` for the CLI.
 
 ### Safe local preview
 

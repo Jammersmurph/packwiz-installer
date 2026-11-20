@@ -48,6 +48,12 @@ application {
 	mainClass.set("link.infra.packwiz.installer.RequiresBootstrap")
 }
 
+tasks.processResources {
+	from(layout.projectDirectory.file("packupdater.png")) {
+		into("branding")
+	}
+}
+
 tasks.register<JavaExec>("previewGui") {
 	group = "application"
 	description = "Preview the GUI with simulated data without changing a modpack."

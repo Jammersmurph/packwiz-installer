@@ -41,27 +41,16 @@ class InstallWindow(private val handler: GUIHandler) : JFrame() {
 		defaultCloseOperation = EXIT_ON_CLOSE
 		// Restore the original installer's fixed-size hints for tiling window managers.
 		isResizable = false
+		iconImage = InstallerTheme.logo
 		minimumSize = Dimension(680, 370)
 		contentPane = JPanel(BorderLayout(0, 24)).apply {
 			border = InstallerTheme.padding(28)
 			add(JPanel(BorderLayout(18, 0)).apply {
-				add(object : JComponent() {
-					init { preferredSize = Dimension(64, 64) }
-					override fun paintComponent(g: Graphics) {
-						super.paintComponent(g)
-						g.color = InstallerTheme.accent
-						g.fillRect(4, 4, 52, 16)
-						g.color = Color(87, 120, 75)
-						g.fillRect(4, 20, 52, 36)
-						g.color = Color(57, 78, 53)
-						g.fillRect(16, 28, 12, 12)
-						g.fillRect(40, 44, 16, 12)
-					}
-				}, BorderLayout.WEST)
+				add(InstallerTheme.logoLabel(), BorderLayout.WEST)
 				add(JPanel(GridLayout(3, 1, 0, 4)).apply {
-					add(InstallerTheme.caption("PACKWIZ  /  MODPACK INSTALLER"))
+					add(InstallerTheme.caption("PACKWIZ UPDATER"))
 					add(packTitle)
-					add(InstallerTheme.caption("A fresh world starts with an up-to-date pack."))
+					add(InstallerTheme.caption("Keeping your modpack up to date."))
 				}, BorderLayout.CENTER)
 			}, BorderLayout.NORTH)
 			add(JPanel(BorderLayout(0, 12)).apply {

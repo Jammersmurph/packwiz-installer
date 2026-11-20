@@ -49,6 +49,7 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 		val multimcFolder: PackwizFilePath,
 		val side: Side,
 		val timeout: Long,
+		val title: String? = null,
 	)
 
 	// TODO: make this return a value based on results?
@@ -97,6 +98,10 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 			} catch (e: IllegalStateException) {
 				ui.showErrorAndExit("Failed to parse pack.toml", e)
 			}
+		}
+
+		if (opts.title == null && pf.name.isNotBlank()) {
+			ui.title = pf.name
 		}
 
 		if (ui.cancelButtonPressed) {
