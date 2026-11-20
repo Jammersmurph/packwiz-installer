@@ -8,6 +8,7 @@ import java.awt.Window;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.net.URL;
@@ -56,6 +57,22 @@ public final class BootstrapGuiSmokeTest {
 					if (!new JPanel().getUI().getClass().getName().startsWith("com.formdev.flatlaf."))
 						throw new AssertionError("Swing did not resolve the child-loaded UI delegate");
 					window.setVisible(true);
+				});
+				// The WebP plugin must work in the final JAR without being visible
+				// to Swing's or ImageIO's parent context class loader.
+				ByteArrayOutputStream webp = new ByteArrayOutputStream();
+				try (InputStream input = BootstrapGuiSmokeTest.class.getResourceAsStream("/icons/test.webp")) {
+					if (input == null) throw new AssertionError("Missing WebP test fixture");
+					byte[] buffer = new byte[1024];
+					int read;
+					while ((read = input.read(buffer)) != -1) webp.write(buffer, 0, read);
+				}
+				Object accepted = handlerClass.getMethod("setPackIcon", byte[].class).invoke(handler, webp.toByteArray());
+				if (!Boolean.TRUE.equals(accepted))
+					throw new AssertionError("The packaged WebP decoder could not read a valid image");
+				EventQueue.invokeAndWait(() -> {
+					if (window.getIconImages().get(0).getWidth(null) != 16)
+						throw new AssertionError("The decoded WebP was not applied to the window");
 				});
 			} finally {
 				handlerClass.getMethod("dispose").invoke(handler);

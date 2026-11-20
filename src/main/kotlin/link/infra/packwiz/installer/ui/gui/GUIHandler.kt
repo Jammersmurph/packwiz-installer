@@ -20,12 +20,14 @@ class GUIHandler : IUserInterface {
 	internal val window: InstallWindow get() = frmPackwizlauncher
 	override val supportsPackIcon = true
 
-	override fun setPackIcon(data: ByteArray) {
+	override fun setPackIcon(data: ByteArray): Boolean {
 		try {
-			val image = decodePackIcon(data) ?: return
+			val image = decodePackIcon(data) ?: return false
 			EventQueue.invokeLater { frmPackwizlauncher.displayPackIcon(image) }
+			return true
 		} catch (e: Exception) {
 			Log.info("Invalid pack icon; using the default logo")
+			return false
 		}
 	}
 

@@ -16,7 +16,8 @@ interface IUserInterface {
 	var title: String
 	/** Headless interfaces do not need to fetch optional artwork. */
 	val supportsPackIcon: Boolean get() = false
-	fun setPackIcon(data: ByteArray) {}
+	/** Return false when artwork cannot be decoded; the bundled logo remains unchanged. */
+	fun setPackIcon(data: ByteArray): Boolean = false
 	fun submitProgress(progress: InstallProgress)
 	// Return true if the installation was cancelled!
 	fun showOptions(options: List<IOptionDetails>): Boolean

@@ -105,7 +105,7 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 			ui.title = pf.name
 		}
 		if (ui.supportsPackIcon && !ui.cancelButtonPressed) {
-			loadPackIcon(opts.packFile, clientHolder)?.let { ui.setPackIcon(it) }
+			loadPackIcon(opts.packFile, clientHolder, ui::setPackIcon)
 		}
 
 		if (ui.cancelButtonPressed) {

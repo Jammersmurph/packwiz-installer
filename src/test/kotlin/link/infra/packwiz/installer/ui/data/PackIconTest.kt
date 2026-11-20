@@ -39,6 +39,50 @@ class PackIconTest {
 		assertNull(loadPackIcon(PackwizFilePath(root.absolutePath.toPath(), "pack.toml"), ClientHolder()))
 	}
 
+	@Test fun acceptsEverySupportedFilenameWhenItIsTheOnlyCandidate() {
+		val png = javaClass.getResourceAsStream("/branding/packupdater.png")!!.use { it.readBytes() }
+		for (name in listOf("icon.png", "icon.webp", "icon.jpg", "icon.jpeg", "icon.gif", "icon.bmp")) {
+			val root = temporary.newFolder()
+			File(root, name).writeBytes(png)
+			assertArrayEquals(name, png, loadPackIcon(PackwizFilePath(root.absolutePath.toPath(), "pack.toml"), ClientHolder()))
+		}
+	}
+
+	@Test fun multipleCandidatesUseDefaultEvenWhenOneIsInvalid() {
+		val root = temporary.newFolder()
+		val png = javaClass.getResourceAsStream("/branding/packupdater.png")!!.use { it.readBytes() }
+		File(root, "icon.png").writeBytes(png)
+		File(root, "icon.webp").writeText("Not a valid image")
+		var applied = false
+		val data = loadPackIcon(PackwizFilePath(root.absolutePath.toPath(), "pack.toml"), ClientHolder()) {
+			applied = true
+			true
+		}
+		assertNull(data)
+		assertFalse(applied)
+	}
+
+	@Test fun multipleRemoteCandidatesUseDefault() {
+		val png = javaClass.getResourceAsStream("/branding/packupdater.png")!!.use { it.readBytes() }
+		val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+		for (name in listOf("/icon.png", "/icon.jpg")) {
+			server.createContext(name) {
+				it.sendResponseHeaders(200, png.size.toLong())
+				it.responseBody.use { output -> output.write(png) }
+				it.close()
+			}
+		}
+		server.start()
+		val client = ClientHolder()
+		try {
+			val pack = HttpUrlPath("http://127.0.0.1:${server.address.port}/".toHttpUrl(), "pack.toml")
+			assertNull(loadPackIcon(pack, client))
+		} finally {
+			client.close()
+			server.stop(0)
+		}
+	}
+
 	@Test fun loadsRemoteIconBesidePackToml() {
 		val png = javaClass.getResourceAsStream("/branding/packupdater.png")!!.use { it.readBytes() }
 		val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)

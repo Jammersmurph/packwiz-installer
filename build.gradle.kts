@@ -33,6 +33,7 @@ val distJarOutput by configurations.creating {
 
 dependencies {
 	implementation("com.formdev:flatlaf:3.5.4")
+	implementation("com.twelvemonkeys.imageio:imageio-webp:3.12.0")
 	testImplementation("junit:junit:4.13.2")
 	implementation("commons-cli:commons-cli:1.5.0")
 	implementation("com.google.code.gson:gson:2.9.0")
@@ -79,6 +80,7 @@ licenseReport {
 }
 
 tasks.shadowJar {
+	mergeServiceFiles()
 	// 4koma uses kotlin-reflect; requires Kotlin metadata
 	//exclude("**/*.kotlin_metadata")
 	//exclude("**/*.kotlin_builtins")

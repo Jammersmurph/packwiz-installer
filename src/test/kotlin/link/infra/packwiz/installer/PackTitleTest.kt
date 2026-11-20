@@ -20,7 +20,10 @@ class PackTitleTest {
 		override var title = "packwiz-installer"
 		override val supportsPackIcon = true
 		var iconData: ByteArray? = null
-		override fun setPackIcon(data: ByteArray) { iconData = data }
+		override fun setPackIcon(data: ByteArray): Boolean {
+			iconData = data
+			return true
+		}
 		val messages = mutableListOf<String>()
 		override fun submitProgress(progress: InstallProgress) { messages.add(progress.message) }
 		override fun showErrorAndExit(message: String, e: Exception?): Nothing {

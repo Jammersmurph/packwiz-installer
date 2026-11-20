@@ -16,6 +16,9 @@
 # Swing loads FlatLaf UI delegates and property values reflectively.
 -keep class com.formdev.flatlaf.** { *; }
 
+# ImageIO providers and metadata types are also instantiated reflectively.
+-keep class com.twelvemonkeys.** { *; }
+
 -keep @interface kotlin.Metadata { *; }
 
 -renamesourcefileattribute SourceFile

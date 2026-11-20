@@ -8,12 +8,17 @@ progress window, expandable activity log, and searchable optional-mod selection.
 The header and window title use the name from `pack.toml` once it loads.
 Use `--title "My Modpack"` to override it, or `--no-gui` for the CLI.
 
-Add an `icon.png` beside your hosted `pack.toml` to replace the default logo in
+Add an icon beside your hosted `pack.toml` to replace the default logo in
 the updater header and window icon. This also works for local packs. Artwork
 keeps its aspect ratio; missing, invalid, or oversized icons leave the default
 logo unchanged. The bundled logo is square; pack artwork fits a square display
-area without stretching. Icons must be PNGs no larger than 1 MiB and 2048×2048 pixels.
-Remote artwork has a three-second deadline, and headless installs skip it.
+area without stretching. PNG, WebP, JPEG, GIF (first frame), and BMP are supported.
+The updater checks for `icon.png`, `icon.webp`, `icon.jpg`, `icon.jpeg`, `icon.gif`,
+and `icon.bmp` beside `pack.toml`. Exactly one must exist; multiple matches use
+the default PackUpdater logo instead. Missing or invalid artwork also uses the default. The actual image
+format is detected from its contents, so a WebP named `icon.png` also works.
+Icons must be no larger than 1 MiB and 2048×2048 pixels. All remote artwork
+lookups share a three-second deadline, and headless installs skip them.
 
 ### Safe local preview
 
