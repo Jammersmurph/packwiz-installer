@@ -1,6 +1,7 @@
 package link.infra.packwiz.installer.ui.gui
 
 import link.infra.packwiz.installer.ui.data.IOptionDetails
+import link.infra.packwiz.installer.ui.data.OptionGroup
 import java.awt.BorderLayout
 import java.awt.FlowLayout
 import java.awt.event.ActionEvent
@@ -17,10 +18,12 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import java.awt.Dimension
 
-class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, future: CompletableFuture<Boolean>, parentWindow: JFrame?) : JDialog(parentWindow, "Select optional mods...", true), ActionListener {
+class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, future: CompletableFuture<Boolean>, parentWindow: JFrame?, groups: List<OptionGroup> = emptyList()) : JDialog(parentWindow, "Select optional mods...", true), ActionListener {
 	private val lblOptionDescription: JTextArea
 	private val tableModel: OptionTableModel
 	private val future: CompletableFuture<Boolean>
+	private var groupedPanel: GroupedOptionsPanel? = null
+	private var flatTable: JTable? = null
 
 	private class OptionTableModel(givenOpts: List<IOptionDetails>) : AbstractTableModel() {
 		private val opts: List<OptionTempHandler>
@@ -58,6 +61,7 @@ class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, fu
 		}
 
 		fun getDescription(rowIndex: Int) = opts[rowIndex].optionDescription
+		fun temporaryOptions() = opts
 
 		fun finalise() {
 			for (opt in opts) {
@@ -68,6 +72,8 @@ class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, fu
 
 	override fun actionPerformed(e: ActionEvent) {
 		if (e.actionCommand == "OK") {
+			groupedPanel?.commitEditing()
+			flatTable?.let { if (it.isEditing) it.cellEditor.stopCellEditing() }
 			tableModel.finalise()
 			future.complete(false)
 			dispose()
@@ -97,7 +103,7 @@ class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, fu
 			add(JPanel(BorderLayout(0, 12)).apply {
 				border = InstallerTheme.padding(20)
 				add(InstallerTheme.heading("Make it your own"), BorderLayout.NORTH)
-				add(InstallerTheme.caption("Choose the optional mods for your adventure."), BorderLayout.CENTER)
+				add(InstallerTheme.caption(if (groups.isEmpty()) "Choose optional mods for your pack." else "Choose individual mods or enable a whole group."), BorderLayout.CENTER)
 				add(search, BorderLayout.SOUTH)
 			}, BorderLayout.NORTH)
 			add(JPanel().apply {
@@ -118,7 +124,15 @@ class OptionsSelectWindow internal constructor(optList: List<IOptionDetails>, fu
 						border = EmptyBorder(10, 10, 10, 10)
 					}
 
-					leftComponent = JScrollPane(JTable().apply {
+					leftComponent = if (groups.isNotEmpty()) {
+						val panel = GroupedOptionsPanel(groups, optList.zip(tableModel.temporaryOptions()).toMap(), search, lblOptionDescription)
+						groupedPanel = panel
+						JScrollPane(panel).apply {
+							horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+							verticalScrollBar.unitIncrement = 24
+						}
+					} else JScrollPane(JTable().apply {
+						flatTable = this
 						showVerticalLines = false
 						showHorizontalLines = false
 						setSelectionMode(ListSelectionModel.SINGLE_SELECTION)

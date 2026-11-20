@@ -11,9 +11,16 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.jar.JarInputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import javax.swing.JFrame;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.AbstractButton;
@@ -74,6 +81,7 @@ public final class BootstrapGuiSmokeTest {
 					if (window.getIconImages().get(0).getWidth(null) != 16)
 						throw new AssertionError("The decoded WebP was not applied to the window");
 				});
+				verifyGroupedOptions(installer, (JFrame) window);
 			} finally {
 				handlerClass.getMethod("dispose").invoke(handler);
 			}
@@ -87,6 +95,63 @@ public final class BootstrapGuiSmokeTest {
 				for (Window window : Window.getWindows()) window.dispose();
 			});
 		}
+	}
+
+	private static void verifyGroupedOptions(ClassLoader loader, JFrame parent) throws Exception {
+		Class<?> optionType = loader.loadClass("link.infra.packwiz.installer.ui.data.IOptionDetails");
+		boolean[] enabled = { false, false };
+		Object[] choices = new Object[2];
+		for (int index = 0; index < choices.length; index++) {
+			final int i = index;
+			choices[i] = Proxy.newProxyInstance(loader, new Class<?>[] { optionType }, (proxy, method, args) -> {
+				switch (method.getName()) {
+					case "getName": return "VR test " + i;
+					case "getOptionDescription": return "VR description";
+					case "getOptionValue": return enabled[i];
+					case "setOptionValue": enabled[i] = (Boolean) args[0]; return null;
+					case "hashCode": return System.identityHashCode(proxy);
+					case "equals": return proxy == args[0];
+					case "toString": return "VR test " + i;
+					default: throw new AssertionError("Unexpected option method: " + method);
+				}
+			});
+		}
+		List<Object> options = Arrays.asList(choices);
+		Object group = loader.loadClass("link.infra.packwiz.installer.ui.data.OptionGroup")
+				.getConstructor(String.class, String.class, String.class, List.class)
+				.newInstance("vr", "VR Support", "Test group", options);
+		Class<?> dialogType = loader.loadClass("link.infra.packwiz.installer.ui.gui.OptionsSelectWindow");
+		EventQueue.invokeAndWait(() -> {
+			try {
+				CompletableFuture<Boolean> result = new CompletableFuture<>();
+				JDialog dialog = (JDialog) dialogType
+						.getConstructor(List.class, CompletableFuture.class, JFrame.class, List.class)
+						.newInstance(options, result, parent, Collections.singletonList(group));
+				try {
+					assertComponents(dialog);
+					AbstractButton groupButton = findButton(dialog, "VR Support (");
+					if (groupButton == null) throw new AssertionError("Grouped selection is missing");
+					groupButton.doClick();
+					if (enabled[0] || enabled[1]) throw new AssertionError("Choices changed before Save");
+					findButton(dialog, "Save selection").doClick();
+					if (!enabled[0] || !enabled[1] || result.getNow(true))
+						throw new AssertionError("Grouped choices were not saved");
+				} finally { dialog.dispose(); }
+			} catch (ReflectiveOperationException e) { throw new AssertionError(e); }
+		});
+	}
+
+	private static AbstractButton findButton(Component component, String prefix) {
+		if (component instanceof AbstractButton) {
+			AbstractButton button = (AbstractButton) component;
+			if (button.getText() != null && button.getText().startsWith(prefix)) return button;
+		}
+		if (component instanceof Container)
+			for (Component child : ((Container) component).getComponents()) {
+				AbstractButton result = findButton(child, prefix);
+				if (result != null) return result;
+			}
+		return null;
 	}
 
 	private static void assertComponents(Component component) {

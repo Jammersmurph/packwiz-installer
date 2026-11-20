@@ -4,6 +4,7 @@ import link.infra.packwiz.installer.ui.IUserInterface
 import link.infra.packwiz.installer.ui.IUserInterface.ExceptionListResult
 import link.infra.packwiz.installer.ui.data.ExceptionDetails
 import link.infra.packwiz.installer.ui.data.IOptionDetails
+import link.infra.packwiz.installer.ui.data.OptionGroup
 import link.infra.packwiz.installer.ui.data.InstallProgress
 import link.infra.packwiz.installer.util.Log
 import java.awt.EventQueue
@@ -137,7 +138,11 @@ class GUIHandler : IUserInterface {
 		}
 	}
 
-	override fun showOptions(options: List<IOptionDetails>): Boolean {
+	override val supportsOptionGroups = true
+
+	override fun showOptions(options: List<IOptionDetails>): Boolean = showOptions(options, emptyList())
+
+	override fun showOptions(options: List<IOptionDetails>, groups: List<OptionGroup>): Boolean {
 		val future = CompletableFuture<Boolean>()
 		EventQueue.invokeAndWait {
 			if (options.isEmpty()) {
@@ -146,7 +151,7 @@ class GUIHandler : IUserInterface {
 					"Optional mods", JOptionPane.INFORMATION_MESSAGE)
 				future.complete(false)
 			} else {
-				OptionsSelectWindow(options, future, frmPackwizlauncher).apply {
+				OptionsSelectWindow(options, future, frmPackwizlauncher, groups).apply {
 					defaultCloseOperation = JDialog.DISPOSE_ON_CLOSE
 					isVisible = true
 				}

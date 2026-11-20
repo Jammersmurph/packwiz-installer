@@ -43,6 +43,49 @@ It checks UI delegates and fonts and fails on GUI initialization errors. This
 check also runs during `build` (with a display, or under `xvfb-run` on Linux).
 CI builds on Java 8 and additionally runs this packaged-GUI check on Java 21.
 
+## Grouping optional mods
+
+Place **`optional-groups.toml` beside `pack.toml`** in your hosted pack, without
+changing Packwiz or registering it in the index. Local packs work too.
+
+```toml
+version = 1 # Optional; defaults to 1. This is the config format, not pack version.
+
+[[groups]]
+id = "vr"
+name = "VR Support"
+description = "Enable these mods when playing with a VR headset."
+mods = [
+    "mods/vivecraft.pw.toml",
+    "mods/vivecraft-compat.pw.toml",
+]
+```
+
+Each group has an expand/collapse arrow and a checkbox to enable or disable all
+its members. Expand a group to change individual mods; mixed selections show an
+intermediate checkbox state and an enabled count. Search finds group names and
+individual mods, expanding matches automatically. Group actions always affect
+the whole group, including members hidden by a search.
+
+- Entries match **metadata paths**, relative to `pack.toml`, not display names
+  or downloaded JAR names. Only existing, optional, current-side mods can match.
+- Grouping preserves existing choices and Packwiz defaults. **Save selection**
+  applies changes; **Cancel** or closing the dialog discards them.
+- Unlisted mods appear under **Other optional mods**. A mod listed in multiple
+  groups belongs to the first group; unknown members are skipped with warnings,
+  and empty groups are hidden.
+- The config is fetched only when opening the optional-mod selector (including
+  on already-up-to-date packs). No config means the original flat list.
+- Invalid config, unsupported versions, or download failures warn and fall back
+  to the flat list, without preventing installation. IDs must be unique and
+  paths must stay inside the pack. Config is limited to 128 KiB, 100 groups,
+  and 2,000 members per group; remote fetches have a three-second deadline.
+- The CLI keeps its existing behavior and does not fetch group configuration.
+
+See [`examples/optional-groups.toml`](examples/optional-groups.toml) for a larger
+example. `./gradlew previewGui` includes sample VR and visual groups to try
+without changing a real installation.
+
 ## GitHub builds and releases
 
 Pushes to `main` and pull requests build on Java 8 and run the GUI tests

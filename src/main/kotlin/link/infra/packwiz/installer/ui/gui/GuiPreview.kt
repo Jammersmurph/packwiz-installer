@@ -4,6 +4,7 @@ package link.infra.packwiz.installer.ui.gui
 
 import link.infra.packwiz.installer.ui.data.InstallProgress
 import link.infra.packwiz.installer.ui.data.IOptionDetails
+import link.infra.packwiz.installer.ui.data.OptionGroup
 import link.infra.packwiz.installer.ui.data.ExceptionDetails
 import link.infra.packwiz.installer.ui.IUserInterface
 import java.awt.EventQueue
@@ -22,13 +23,19 @@ fun main() {
 			previewOption("Sodium", "A faster rendering engine for smoother exploration.", true),
 			previewOption("Iris Shaders", "Bring your world to life with shader-pack support.", true),
 			previewOption("JourneyMap", "Map your travels and mark your favorite places.", false),
-			previewOption("AppleSkin", "See hunger and saturation information before your next expedition.", true)
+			previewOption("AppleSkin", "See hunger and saturation information before your next expedition.", true),
+			previewOption("Vivecraft", "Play your modpack using a VR headset.", false),
+			previewOption("VR Compatibility", "Compatibility fixes for virtual reality.", false)
+		)
+		val groups = listOf(
+			OptionGroup("vr", "VR Support", "Enable these mods when using a VR headset.", mods.takeLast(2)),
+			OptionGroup("visuals", "Visual Enhancements", "Rendering and shader support.", mods.take(2))
 		)
 		val controls = JFrame("Packwiz · Preview controls (no files changed)").apply {
 			defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
 			add(JPanel(FlowLayout()).apply {
 				add(JButton("Optional mods").apply {
-					addActionListener { OptionsSelectWindow(mods, CompletableFuture<Boolean>(), window).isVisible = true }
+					addActionListener { OptionsSelectWindow(mods, CompletableFuture<Boolean>(), window, groups).isVisible = true }
 				})
 				add(JButton("Download errors").apply {
 					addActionListener {
@@ -53,7 +60,7 @@ fun main() {
 			if (window.ownedWindows.any { it.isVisible }) return@addActionListener
 			if (handler.optionsButtonPressed) {
 				handler.optionsButtonPressed = false
-				OptionsSelectWindow(mods, CompletableFuture<Boolean>(), window).isVisible = true
+				OptionsSelectWindow(mods, CompletableFuture<Boolean>(), window, groups).isVisible = true
 			}
 			if (step >= 24) return@addActionListener
 			step++

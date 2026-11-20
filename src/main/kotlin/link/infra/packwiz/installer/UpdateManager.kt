@@ -9,6 +9,7 @@ import link.infra.packwiz.installer.metadata.DownloadMode
 import link.infra.packwiz.installer.metadata.IndexFile
 import link.infra.packwiz.installer.metadata.ManifestFile
 import link.infra.packwiz.installer.metadata.PackFile
+import link.infra.packwiz.installer.metadata.loadOptionalGroups
 import link.infra.packwiz.installer.metadata.curseforge.resolveCfMetadata
 import link.infra.packwiz.installer.metadata.hash.Hash
 import link.infra.packwiz.installer.metadata.hash.HashFormat
@@ -346,8 +347,13 @@ class UpdateManager internal constructor(private val opts: Options, val ui: IUse
 		}
 		// If options changed, present all options again
 		if (ui.optionsButtonPressed || optionsChanged) {
+			val groups = if (ui.supportsOptionGroups && optionTasks.isNotEmpty()) {
+				loadOptionalGroups(opts.packFile, clientHolder)?.resolve(
+					opts.packFile, optionTasks.associateBy { it.metadata.file }
+				) ?: emptyList()
+			} else emptyList()
 			// new ArrayList is required so it's an IOptionDetails rather than a DownloadTask list
-			if (ui.showOptions(ArrayList(optionTasks))) {
+			if (ui.showOptions(ArrayList(optionTasks), groups)) {
 				cancelled = true
 				handleCancellation()
 			}

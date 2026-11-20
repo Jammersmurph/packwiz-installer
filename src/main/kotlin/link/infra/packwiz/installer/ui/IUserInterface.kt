@@ -3,6 +3,7 @@ package link.infra.packwiz.installer.ui
 import link.infra.packwiz.installer.ui.data.ExceptionDetails
 import link.infra.packwiz.installer.ui.data.IOptionDetails
 import link.infra.packwiz.installer.ui.data.InstallProgress
+import link.infra.packwiz.installer.ui.data.OptionGroup
 
 interface IUserInterface {
 	fun show()
@@ -21,6 +22,8 @@ interface IUserInterface {
 	fun submitProgress(progress: InstallProgress)
 	// Return true if the installation was cancelled!
 	fun showOptions(options: List<IOptionDetails>): Boolean
+	val supportsOptionGroups: Boolean get() = false
+	fun showOptions(options: List<IOptionDetails>, groups: List<OptionGroup>): Boolean = showOptions(options)
 
 	fun showExceptions(exceptions: List<ExceptionDetails>, numTotal: Int, allowsIgnore: Boolean): ExceptionListResult
 	fun disableOptionsButton(hasOptions: Boolean) {}

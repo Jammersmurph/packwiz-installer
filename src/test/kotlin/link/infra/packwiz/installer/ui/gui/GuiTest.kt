@@ -4,6 +4,7 @@ import link.infra.packwiz.installer.ui.IUserInterface
 import link.infra.packwiz.installer.ui.data.ExceptionDetails
 import link.infra.packwiz.installer.ui.data.IOptionDetails
 import link.infra.packwiz.installer.ui.data.InstallProgress
+import link.infra.packwiz.installer.ui.data.OptionGroup
 import org.junit.Assert.*
 import org.junit.Assume.assumeFalse
 import org.junit.Test
@@ -18,6 +19,11 @@ import java.util.concurrent.CompletableFuture
 import javax.swing.*
 
 class GuiTest {
+	private fun optional(label: String, enabled: Boolean) = object : IOptionDetails {
+		override val name = label
+		override var optionValue = enabled
+		override val optionDescription = "$label description"
+	}
 	private fun components(root: Component): List<Component> = listOf(root) +
 		if (root is Container) root.components.flatMap { components(it) } else emptyList()
 
@@ -129,6 +135,50 @@ class GuiTest {
 			assertFalse(result.get())
 			assertFalse(mods[0].optionValue)
 			assertTrue(mods[1].optionValue)
+		} finally { dialog.dispose() }
+	}
+
+	@Test fun groupBulkSelectionShowsMixedStateAndSavesOnlyOnConfirmation() = onUi { handler ->
+		val vr = listOf(optional("Vivecraft", true), optional("VR Compat", false))
+		val other = optional("JourneyMap", false)
+		val future = CompletableFuture<Boolean>()
+		val dialog = OptionsSelectWindow(vr + other, future, handler.window,
+			listOf(OptionGroup("vr", "VR Support", "For VR headsets.", vr)))
+		try {
+			val children = components(dialog)
+			val group = children.filterIsInstance<JCheckBox>().single {
+				it.accessibleContext.accessibleName == "VR Support"
+			}
+			assertEquals("indeterminate", group.getClientProperty("JButton.selectedState"))
+			group.doClick()
+			assertTrue(group.isSelected)
+			assertFalse(vr[1].optionValue)
+			assertTrue(children.filterIsInstance<JCheckBox>().any {
+				it.accessibleContext.accessibleName == "Other optional mods"
+			})
+			children.filterIsInstance<JButton>().single { it.text == "Save selection" }.doClick()
+			assertFalse(future.get())
+			assertTrue(vr.all { it.optionValue })
+			assertFalse(other.optionValue)
+		} finally { dialog.dispose() }
+	}
+
+	@Test fun groupedSearchExpandsMatchesAndCancelDiscardsBulkChanges() = onUi { handler ->
+		val vr = listOf(optional("Vivecraft", false), optional("VR Compat", false))
+		val future = CompletableFuture<Boolean>()
+		val dialog = OptionsSelectWindow(vr, future, handler.window,
+			listOf(OptionGroup("vr", "VR Support", options = vr)))
+		try {
+			val children = components(dialog)
+			val table = children.filterIsInstance<JTable>().single()
+			assertFalse(table.isVisible)
+			children.filterIsInstance<JTextField>().single().text = "vivecraft"
+			assertTrue(table.isVisible)
+			assertEquals(1, table.rowCount)
+			children.filterIsInstance<JCheckBox>().single().doClick()
+			children.filterIsInstance<JButton>().single { it.text == "Cancel" }.doClick()
+			assertTrue(future.get())
+			assertTrue(vr.none { it.optionValue })
 		} finally { dialog.dispose() }
 	}
 

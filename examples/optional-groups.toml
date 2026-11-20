@@ -1,0 +1,20 @@
+# Place beside your pack.toml. Paths are relative to that pack.toml.
+# Version 1 is assumed if omitted. These paths must refer to optional mods.
+version = 1
+
+[[groups]]
+id = "vr"
+name = "VR Support"
+description = "Enable these mods when playing with a VR headset."
+mods = [
+    "mods/vivecraft.pw.toml",
+    "mods/vivecraft-compat.pw.toml",
+]
+
+[[groups]]
+id = "visuals"
+name = "Visual Enhancements"
+description = "Optional shader and rendering enhancements."
+mods = [
+    "mods/iris.pw.toml",
+]
