@@ -97,8 +97,10 @@ under a virtual display. The JAR is also uploaded as a workflow artifact.
   The JAR's `Implementation-Version` matches that tag, so the bootstrapper
   does not download it again unless a newer release is published.
 - **Development:** Test locally using `./gradlew build` and `./gradlew previewGui`.
-  Pushes to `dev` do not build or publish anything. The branch remains available
-  for development work.
+  Pushes to `dev` run the same build and compatibility checks, then publish a
+  prerelease with a unique `dev-build-<run-id>-<attempt>` tag. The JAR's
+  `Implementation-Version` matches that tag. Prereleases are not marked latest,
+  so the stable updater's `/releases/latest` endpoint continues to use stable releases.
 - **Pull requests:** Build and test only; no release is published.
 
 Every release asset is named **`packwiz-installer.jar`**, regardless of its tag.
